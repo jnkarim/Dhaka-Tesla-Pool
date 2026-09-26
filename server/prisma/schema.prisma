@@ -1,0 +1,146 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+}
+
+enum RideStatus {
+  REQUESTED
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PoolStatus {
+  OPEN
+  ACCEPTED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum DhakaZone {
+  KHILGAON
+  BANANI
+  GULSHAN_1
+  GULSHAN_2
+  MOHAKHALI
+  FARMGATE
+  DHANMONDI
+  MIRPUR
+  UTTARA
+  BASHUNDHARA
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+
+  vehicle      Vehicle?
+  rideRequests RideRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vehicle {
+  id          String  @id @default(cuid())
+  name        String
+  plateNumber String  @unique
+  capacity    Int
+  isOnline    Boolean @default(false)
+
+  driverId String @unique
+  driver   User   @relation(fields: [driverId], references: [id])
+
+  pools Pool[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RideRequest {
+  id String @id @default(cuid())
+
+  passengerId String
+  passenger   User   @relation(fields: [passengerId], references: [id])
+
+  pickup      DhakaZone
+  destination DhakaZone
+  seats       Int
+
+  estimatedFarePoisha Int
+
+  status RideStatus @default(REQUESTED)
+
+  poolMember    PoolMember?
+  statusHistory RideStatusHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([passengerId])
+  @@index([status])
+  @@index([pickup, destination])
+}
+
+model Pool {
+  id String @id @default(cuid())
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  status PoolStatus @default(OPEN)
+
+  members PoolMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model PoolMember {
+  id String @id @default(cuid())
+
+  poolId String
+  pool   Pool   @relation(fields: [poolId], references: [id])
+
+  rideRequestId String      @unique
+  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id])
+
+  seatsReserved   Int
+  finalFarePoisha Int?
+
+  joinedAt DateTime @default(now())
+
+  @@index([poolId])
+}
+
+model RideStatusHistory {
+  id String @id @default(cuid())
+
+  rideRequestId String
+  rideRequest   RideRequest @relation(fields: [rideRequestId], references: [id])
+
+  status RideStatus
+
+  createdAt DateTime @default(now())
+
+  @@index([rideRequestId, createdAt])
+}
