@@ -17,29 +17,32 @@ node_modules/
 
 # Next.js
 .next/
+**/.next/
 out/
+
+# Build
 dist/
 build/
 
-# Next.js cache
-.next/cache/
+# Prisma generated client
+server/src/generated/
 
-# Node / Express
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-
-# TypeScript
-*.tsbuildinfo
-
-
-# Logs
-logs/
-*.log
-
+# Cache / temp
+.cache/
 tmp/
 temp/
-.cache/
 
+# OS
+.DS_Store
+Thumbs.db

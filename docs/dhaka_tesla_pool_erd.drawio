@@ -1,0 +1,46 @@
+<mxfile host="app.diagrams.net" agent="OpenAI">
+  <diagram id="erd1" name="ERD">
+    <mxGraphModel dx="1585" dy="823" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;User&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;name : String&lt;br&gt;UQ email : String&lt;br&gt;passwordHash : String&lt;br&gt;role : PASSENGER | DRIVER&lt;br&gt;createdAt : DateTime&lt;br&gt;updatedAt : DateTime" vertex="1">
+          <mxGeometry height="210" width="280" x="430" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vehicle" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;Vehicle&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;name : String&lt;br&gt;UQ plateNumber : String&lt;br&gt;capacity : Int&lt;br&gt;isOnline : Boolean&lt;br&gt;FK/UQ driverId -&gt; User.id" vertex="1">
+          <mxGeometry height="190" width="280" x="70" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="ride" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;RideRequest&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK passengerId -&gt; User.id&lt;br&gt;pickup : DhakaZone&lt;br&gt;destination : DhakaZone&lt;br&gt;seats : Int&lt;br&gt;estimatedFarePoisha : Int&lt;br&gt;status : RideStatus" vertex="1">
+          <mxGeometry height="220" width="300" x="430" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="pool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;Pool&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK vehicleId -&gt; Vehicle.id&lt;br&gt;status : PoolStatus&lt;br&gt;createdAt : DateTime&lt;br&gt;updatedAt : DateTime" vertex="1">
+          <mxGeometry height="170" width="280" x="70" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="member" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;PoolMember&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK poolId -&gt; Pool.id&lt;br&gt;FK/UQ rideRequestId -&gt; RideRequest.id&lt;br&gt;seatsReserved : Int&lt;br&gt;finalFarePoisha : Int?&lt;br&gt;joinedAt : DateTime" vertex="1">
+          <mxGeometry height="200" width="300" x="470" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="history" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;RideStatusHistory&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK rideRequestId -&gt; RideRequest.id&lt;br&gt;status : RideStatus&lt;br&gt;createdAt : DateTime" vertex="1">
+          <mxGeometry height="160" width="300" x="820" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="vehicle" value="1 to 0..1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="ride" value="1 to many">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="vehicle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="pool" value="1 to many">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="pool" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="member" value="1 to many">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="ride" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="member" value="1 to 0..1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="ride" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;fontSize=12;" target="history" value="1 to many">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
