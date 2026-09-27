@@ -2,7 +2,7 @@ import type { Response } from "express";
 
 import type { AuthenticatedRequest } from "../../middleware/authenticate.js";
 
-import { createRide } from "./ride.service.js";
+import { createRide, updateRideStatus } from "./ride.service.js";
 
 export async function createRideController(
   req: AuthenticatedRequest,
@@ -40,6 +40,38 @@ export async function createRideController(
       success: false,
 
       message: "Server Error",
+    });
+  }
+}
+
+export async function updateRideStatusController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    const rideId = req.params.id;
+
+    if (!rideId || Array.isArray(rideId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ride id",
+      });
+    }
+
+    const { status } = req.body;
+
+    const ride = await updateRideStatus(rideId, status);
+
+    return res.status(200).json({
+      success: true,
+
+      data: ride,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+
+      message: (error as Error).message,
     });
   }
 }
