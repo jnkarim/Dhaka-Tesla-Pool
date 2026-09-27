@@ -3,6 +3,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { UserRole } from "../src/generated/prisma/enums.js";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -13,6 +14,7 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  const demoPasswordHash = await bcrypt.hash("password123", 10);
   const jashim = await prisma.user.upsert({
     where: {
       email: "jashim@dhakateslapool.com",
@@ -21,7 +23,7 @@ async function main() {
     create: {
       name: "Jashim",
       email: "jashim@dhakateslapool.com",
-      passwordHash: "TEMP_HASH",
+      passwordHash: demoPasswordHash,
       role: UserRole.DRIVER,
     },
   });
