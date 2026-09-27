@@ -16,6 +16,7 @@ type LoginInput = {
 
 // Register
 export const registerUser = async (input: RegisterInput) => {
+
   const existingUser = await prisma.user.findUnique({
     where: {
       email: input.email,
@@ -75,6 +76,7 @@ export const loginUser = async (input: LoginInput) => {
     throw new Error("JWT_SECRET_MISSING");
   }
 
+  // token create
   const token = jwt.sign(
     {
       userId: user.id,

@@ -6,8 +6,9 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-brand-dark: #0B0B0F;
+  --color-brand-light: #F8F8FA;
+  --color-brand-accent: #C6FF2E;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

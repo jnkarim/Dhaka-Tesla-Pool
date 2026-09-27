@@ -16,15 +16,10 @@ export async function createRide(
   const ride = await prisma.rideRequest.create({
     data: {
       passengerId,
-
       pickup,
-
       destination,
-
       seats,
-
       estimatedFarePoisha: fare,
-
       status: "REQUESTED",
     },
   });
