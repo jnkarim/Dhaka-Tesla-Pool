@@ -101,14 +101,16 @@ model RideRequest {
 model Pool {
   id String @id @default(cuid())
 
-  vehicleId String
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String?
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
 
   status PoolStatus @default(OPEN)
 
   members PoolMember[]
 
   createdAt DateTime @default(now())
+
   updatedAt DateTime @updatedAt
 
   @@index([vehicleId])
