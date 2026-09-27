@@ -14,6 +14,7 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
+    // service call
     const user = await registerUser({
       name,
       email,
@@ -21,6 +22,7 @@ export const register = async (req: Request, res: Response) => {
       role,
     });
 
+    // response back to browser
     return res.status(200).json({
       success: true,
       data: user,
@@ -52,6 +54,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    // call service
     const result = await loginUser({
       email,
       password,

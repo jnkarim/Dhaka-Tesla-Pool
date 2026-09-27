@@ -6,14 +6,12 @@ import { createRide, updateRideStatus } from "./ride.service.js";
 
 export async function createRideController(
   req: AuthenticatedRequest,
-
   res: Response,
 ) {
   try {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-
         message: "Unauthorized",
       });
     }
@@ -22,23 +20,18 @@ export async function createRideController(
 
     const ride = await createRide(
       req.user.userId,
-
       pickup,
-
       destination,
-
       seats,
     );
 
     return res.status(201).json({
       success: true,
-
       data: ride,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-
       message: "Server Error",
     });
   }

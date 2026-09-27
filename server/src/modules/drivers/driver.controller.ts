@@ -32,24 +32,15 @@ export async function acceptPoolController(
   res: Response,
 ) {
   try {
-
-
     const poolId = req.params.id;
 
-
     if (!poolId || Array.isArray(poolId)) {
-
       return res.status(400).json({
+        success: false,
 
-        success:false,
-
-        message:"Invalid pool id"
-
+        message: "Invalid pool id",
       });
-
     }
-
-
 
     const pool = await acceptPool(
       req.user!.userId,
@@ -57,28 +48,16 @@ export async function acceptPoolController(
       poolId,
     );
 
-
-
     return res.status(200).json({
-
       success: true,
 
       data: pool,
-
     });
-
-
   } catch (error) {
-
-
     return res.status(400).json({
+      success: false,
 
-      success:false,
-
-      message:(error as Error).message,
-
+      message: (error as Error).message,
     });
-
-
   }
 }
