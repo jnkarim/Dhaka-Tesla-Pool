@@ -6,48 +6,20 @@ export type RideStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export const rideTransitions: Record<RideStatus, RideStatus[]> = {
+  REQUESTED: ["MATCHED", "CANCELLED"],
 
-export const rideTransitions: Record<
-  RideStatus,
-  RideStatus[]
-> = {
+  MATCHED: ["DRIVER_ARRIVED", "CANCELLED"],
 
-  REQUESTED: [
-    "MATCHED",
-    "CANCELLED",
-  ],
+  DRIVER_ARRIVED: ["STARTED"],
 
-
-  MATCHED: [
-    "DRIVER_ARRIVED",
-    "CANCELLED",
-  ],
-
-
-  DRIVER_ARRIVED: [
-    "STARTED",
-  ],
-
-
-  STARTED: [
-    "COMPLETED",
-  ],
-
+  STARTED: ["COMPLETED"],
 
   COMPLETED: [],
 
-
   CANCELLED: [],
-
 };
 
-
-
-export function canTransition(
-  current: RideStatus,
-  next: RideStatus
-): boolean {
-
+export function canTransition(current: RideStatus, next: RideStatus): boolean {
   return rideTransitions[current].includes(next);
-
 }
