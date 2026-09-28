@@ -75,7 +75,7 @@ export default function Hero() {
           >
             Share the ride.
             <br />
-            <span className="text-[#9EDB00]">Move smarter.</span>
+            <span className="text-[#C6FF2E]">Move smarter.</span>
           </h1>
 
           {/* Description */}
@@ -268,7 +268,7 @@ export default function Hero() {
                   transition-all
                   duration-200
                   hover:-translate-y-0.5
-                  hover:bg-[#B8F51E]
+                  hover:bg-[#C6FF2E]
                   hover:shadow-[0_16px_36px_rgba(198,255,46,0.28)]
                   active:translate-y-0
                 "

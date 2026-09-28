@@ -37,7 +37,7 @@ export default function Navbar() {
                 text-black
                 transition
                 hover:scale-[1.02]
-                hover:bg-[#B8F51E]
+                hover:bg-[#C6FF2E]
               "
             >
               Get a ride
