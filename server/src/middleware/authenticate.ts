@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+
 import jwt from "jsonwebtoken";
 
 type TokenPayload = {
@@ -15,21 +16,26 @@ export const authenticate = (
   res: Response,
   next: NextFunction,
 ) => {
-  const authHeader = req.headers.authorization;
+  // Read token from cookie first
+  let token = req.cookies?.token;
 
-  if (!authHeader) {
+  // Support Authorization header also
+  if (!token) {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader) {
+      const [scheme, headerToken] = authHeader.split(" ");
+
+      if (scheme === "Bearer" && headerToken) {
+        token = headerToken;
+      }
+    }
+  }
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: "Authentication required",
-    });
-  }
-
-  const [scheme, token] = authHeader.split(" ");
-
-  if (scheme !== "Bearer" || !token) {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid authorization header",
     });
   }
 
@@ -48,7 +54,7 @@ export const authenticate = (
     req.user = payload;
 
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       success: false,
       message: "Invalid or expired token",

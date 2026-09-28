@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { headers } from "next/headers";
+
 import "./globals.css";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -19,17 +24,24 @@ export const metadata: Metadata = {
   description: "Smart ride pooling for Dhaka commuters",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const headersList = await headers();
+
+  const pathname = headersList.get("x-pathname") ?? "";
+
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {" "}
-        <Navbar />
-        {children}
-        <Footer/>
+        {!isAuthPage && <Navbar />}
+
+        <main className="flex-1">{children}</main>
+
+        {!isAuthPage && <Footer />}
       </body>
     </html>
   );
