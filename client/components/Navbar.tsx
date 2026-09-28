@@ -1,16 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Globe2, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export default function Navbar() {
+  const pathname = usePathname();
+
   const [signupOpen, setSignupOpen] = useState(false);
+
+  /*
+    Auth pages-এ main landing navbar
+    দেখাব না।
+  */
+  if (pathname === "/register" || pathname === "/login") {
+    return null;
+  }
 
   return (
     <header className="w-full border-b border-black/10 bg-white">
       <nav className="mx-auto flex h-[100px] max-w-[1540px] items-stretch px-6 lg:px-10">
         {/* Brand */}
+
         <div className="flex min-w-[260px] items-center border-r border-black/10 pr-8">
           <Link href="/" className="flex items-center">
             <span className="text-[26px] font-black tracking-[-0.04em] text-black">
@@ -22,8 +34,10 @@ export default function Navbar() {
         </div>
 
         {/* Desktop navigation */}
+
         <div className="hidden flex-1 items-stretch justify-end lg:flex">
           {/* Get a ride */}
+
           <div className="flex items-center border-r border-black/10 px-8">
             <Link
               href="/passenger"
@@ -37,26 +51,35 @@ export default function Navbar() {
                 text-black
                 transition
                 hover:scale-[1.02]
-                hover:bg-[#C6FF2E]
+                hover:opacity-90
               "
             >
               Get a ride
             </Link>
           </div>
 
+          {/* Rider */}
+
           <NavItem href="/passenger">Rider</NavItem>
+
+          {/* Driver */}
 
           <NavItem href="/driver">Driver</NavItem>
 
-          <NavItem href="#how-it-works">How it works</NavItem>
+          {/* How it works */}
+
+          <NavItem href="/#how-it-works">How it works</NavItem>
+
+          {/* Login */}
 
           <NavItem href="/login">Log in</NavItem>
 
           {/* Sign up dropdown */}
+
           <div className="relative flex items-stretch border-r border-black/10">
             <button
               type="button"
-              onClick={() => setSignupOpen((prev) => !prev)}
+              onClick={() => setSignupOpen((previous) => !previous)}
               className="
                 flex
                 items-center
@@ -73,11 +96,16 @@ export default function Navbar() {
               Sign up
               <ChevronDown
                 size={17}
-                className={`transition-transform ${
-                  signupOpen ? "rotate-180" : ""
-                }`}
+                className={`
+                  transition-transform
+                  duration-200
+
+                  ${signupOpen ? "rotate-180" : ""}
+                `}
               />
             </button>
+
+            {/* Dropdown */}
 
             {signupOpen && (
               <div
@@ -95,6 +123,7 @@ export default function Navbar() {
               >
                 <Link
                   href="/register"
+                  onClick={() => setSignupOpen(false)}
                   className="
                     block
                     px-8
@@ -111,6 +140,7 @@ export default function Navbar() {
 
                 <Link
                   href="/register?role=driver"
+                  onClick={() => setSignupOpen(false)}
                   className="
                     block
                     border-t
@@ -129,6 +159,38 @@ export default function Navbar() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Mobile navigation */}
+
+        <div className="ml-auto flex items-center gap-3 lg:hidden">
+          <Link
+            href="/login"
+            className="
+              px-3
+              py-2
+              text-sm
+              font-bold
+              text-black
+            "
+          >
+            Log in
+          </Link>
+
+          <Link
+            href="/register"
+            className="
+              rounded-full
+              bg-[#C6FF2E]
+              px-5
+              py-3
+              text-sm
+              font-black
+              text-black
+            "
+          >
+            Sign up
+          </Link>
         </div>
       </nav>
     </header>
