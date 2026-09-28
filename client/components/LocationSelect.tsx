@@ -1,14 +1,15 @@
-import {
-  Clock3,
-  MapPin,
-  Navigation,
-  Users,
-} from "lucide-react";
+"use client";
 
-type PremiumMapPreviewProps = {
-  pickup: string;
-  destination: string;
-  seats: number;
+import { useEffect, useRef, useState } from "react";
+
+import { Check, ChevronDown, MapPin, Search } from "lucide-react";
+
+type LocationSelectProps = {
+  label: string;
+  value: string;
+  locations: string[];
+  onChange: (value: string) => void;
+  variant?: "pickup" | "destination";
 };
 
 function formatZone(zone: string) {
@@ -18,472 +19,341 @@ function formatZone(zone: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export default function PremiumMapPreview({
-  pickup,
-  destination,
-  seats,
-}: PremiumMapPreviewProps) {
+export default function LocationSelect({
+  label,
+  value,
+  locations,
+  onChange,
+  variant = "pickup",
+}: LocationSelectProps) {
+  const [open, setOpen] = useState(false);
+
+  const [search, setSearch] = useState("");
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filteredLocations = locations.filter((location) =>
+    formatZone(location).toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  function handleSelect(location: string) {
+    onChange(location);
+
+    setOpen(false);
+
+    setSearch("");
+  }
+
   return (
-    <div
-      className="
-        relative
-        h-[610px]
-        w-full
-        max-w-[620px]
-        overflow-hidden
-        rounded-[28px]
-        bg-[#0B0B0F]
-        shadow-[0_30px_80px_rgba(0,0,0,0.18)]
-      "
-    >
-      {/* Ambient lime glow */}
+    <div ref={containerRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className={`
+          group
+          flex
+          h-[78px]
+          w-full
+          items-center
+          gap-4
+          rounded-2xl
+          border
+          px-5
+          text-left
+          transition-all
+          duration-200
 
-      <div
-        className="
-          absolute
-          left-1/2
-          top-1/2
-          h-[380px]
-          w-[380px]
-          -translate-x-1/2
-          -translate-y-1/2
-          rounded-full
-          bg-[#C6FF2E]/[0.04]
-          blur-3xl
-        "
-      />
-
-      {/* MAP */}
-
-      <svg
-        viewBox="0 0 620 610"
-        className="absolute inset-0 h-full w-full"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+          ${
+            open
+              ? `
+                border-[#C6FF2E]
+                bg-white
+                shadow-[0_10px_35px_rgba(0,0,0,0.08)]
+              `
+              : `
+                border-black/[0.06]
+                bg-black/[0.04]
+                hover:border-black/15
+                hover:bg-white
+              `
+          }
+        `}
       >
-        {/* Major Roads */}
-
-        <path
-          d="
-            M-30 105
-            C100 135 165 185 300 202
-            C425 218 505 178 660 195
-          "
-          stroke="white"
-          strokeOpacity="0.13"
-          strokeWidth="3"
-        />
-
-        <path
-          d="
-            M55 525
-            C160 450 215 390 290 290
-            C345 216 390 128 455 25
-          "
-          stroke="white"
-          strokeOpacity="0.12"
-          strokeWidth="3"
-        />
-
-        <path
-          d="
-            M20 330
-            C145 305 245 330 340 295
-            C435 260 505 210 650 240
-          "
-          stroke="white"
-          strokeOpacity="0.14"
-          strokeWidth="2"
-        />
-
-        <path
-          d="
-            M410 -25
-            C390 115 420 220 470 345
-            C500 420 535 510 575 660
-          "
-          stroke="white"
-          strokeOpacity="0.1"
-          strokeWidth="2"
-        />
-
-        {/* Secondary Roads */}
-
-        <path
-          d="
-            M80 30
-            L175 185
-            L130 285
-            L220 410
-            L175 590
-          "
-          stroke="white"
-          strokeOpacity="0.07"
-        />
-
-        <path
-          d="
-            M230 -20
-            L255 120
-            L205 230
-            L330 370
-            L300 625
-          "
-          stroke="white"
-          strokeOpacity="0.07"
-        />
-
-        <path
-          d="
-            M510 15
-            L480 120
-            L545 210
-            L500 320
-            L620 400
-          "
-          stroke="white"
-          strokeOpacity="0.07"
-        />
-
-        <path
-          d="
-            M-10 425
-            L120 390
-            L220 430
-            L345 410
-            L460 450
-            L660 430
-          "
-          stroke="white"
-          strokeOpacity="0.07"
-        />
-
-        <path
-          d="
-            M-30 250
-            L110 225
-            L215 265
-            L335 235
-            L470 275
-            L660 255
-          "
-          stroke="white"
-          strokeOpacity="0.06"
-        />
-
-        {/* Smaller Streets */}
-
-        <path
-          d="M35 70 L180 125 L270 95 L390 140 L580 115"
-          stroke="white"
-          strokeOpacity="0.035"
-        />
-
-        <path
-          d="M35 180 L135 165 L250 195 L420 175 L610 215"
-          stroke="white"
-          strokeOpacity="0.035"
-        />
-
-        <path
-          d="M15 385 L155 360 L280 395 L420 350 L620 370"
-          stroke="white"
-          strokeOpacity="0.035"
-        />
-
-        <path
-          d="M55 490 L190 470 L320 505 L450 470 L610 500"
-          stroke="white"
-          strokeOpacity="0.035"
-        />
-
-        {/* Route Glow */}
-
-        <path
-          d="
-            M155 118
-            C170 165 180 215 225 245
-            C270 275 320 260 344 307
-            C370 355 378 405 425 443
-            C452 465 470 480 487 512
-          "
-          stroke="#C6FF2E"
-          strokeOpacity="0.18"
-          strokeWidth="18"
-          strokeLinecap="round"
-        />
-
-        {/* Main Route */}
-
-        <path
-          d="
-            M155 118
-            C170 165 180 215 225 245
-            C270 275 320 260 344 307
-            C370 355 378 405 425 443
-            C452 465 470 480 487 512
-          "
-          stroke="#C6FF2E"
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-
-        {/* Pickup + Destination Dots */}
-
-        <circle
-          cx="155"
-          cy="118"
-          r="10"
-          fill="#C6FF2E"
-        />
-
-        <circle
-          cx="487"
-          cy="512"
-          r="10"
-          fill="#C6FF2E"
-        />
-
-        {/* Mid Route Point */}
-
-        <circle
-          cx="344"
-          cy="307"
-          r="6"
-          fill="#F8F8FA"
-          stroke="#C6FF2E"
-          strokeWidth="4"
-        />
-      </svg>
-
-      {/* Area Labels */}
-
-      <div className="absolute left-[11%] top-[42%] text-[11px] font-semibold tracking-[0.18em] text-white/20">
-        BANANI
-      </div>
-
-      <div className="absolute right-[14%] top-[29%] text-[11px] font-semibold tracking-[0.18em] text-white/20">
-        GULSHAN
-      </div>
-
-      <div className="absolute bottom-[28%] left-[24%] text-[11px] font-semibold tracking-[0.18em] text-white/20">
-        MOHAKHALI
-      </div>
-
-      <div className="absolute bottom-[17%] right-[16%] text-[11px] font-semibold tracking-[0.18em] text-white/20">
-        TEJGAON
-      </div>
-
-      {/* Pickup Card */}
-
-      <div className="absolute left-[8%] top-[8%]">
         <div
-          className="
-            rounded-2xl
-            bg-white
-            px-5
-            py-4
-            text-black
-            shadow-2xl
-          "
+          className={`
+            flex
+            h-11
+            w-11
+            shrink-0
+            items-center
+            justify-center
+            rounded-full
+
+            ${
+              variant === "pickup"
+                ? `
+                  bg-[#C6FF2E]
+                  text-black
+                `
+                : `
+                  bg-black
+                  text-white
+                `
+            }
+          `}
         >
-          <div className="flex items-center gap-2 text-xs text-black/45">
-            <MapPin size={14} />
+          <MapPin size={19} strokeWidth={2.4} />
+        </div>
 
-            Pickup
-          </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className="
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-[0.14em]
+              text-black/40
+            "
+          >
+            {label}
+          </p>
 
-          <p className="mt-1 text-lg font-black">
-            {formatZone(pickup)}
+          <p
+            className="
+              mt-1
+              truncate
+              text-[17px]
+              font-bold
+              text-black
+            "
+          >
+            {formatZone(value)}
           </p>
         </div>
-      </div>
 
-      {/* ETA */}
-
-      <div
-        className="
-          absolute
-          right-6
-          top-6
-          flex
-          items-center
-          gap-3
-          rounded-full
-          border
-          border-white/10
-          bg-black/70
-          px-4
-          py-3
-          text-white
-          backdrop-blur-md
-        "
-      >
         <div
           className="
             flex
             h-9
             w-9
+            shrink-0
             items-center
             justify-center
             rounded-full
-            bg-[#C6FF2E]
-            text-black
+            transition
+            group-hover:bg-black/[0.05]
           "
         >
-          <Clock3 size={18} />
+          <ChevronDown
+            size={20}
+            strokeWidth={2.2}
+            className={`
+              text-black/40
+              transition-transform
+              duration-200
+
+              ${open ? "rotate-180" : ""}
+            `}
+          />
         </div>
+      </button>
 
-        <div>
-          <p className="text-[11px] text-white/45">
-            Estimated pickup
-          </p>
-
-          <p className="text-sm font-bold">
-            6 min away
-          </p>
-        </div>
-      </div>
-
-      {/* Tesla Position Marker */}
-
-      <div
-        className="
-          absolute
-          left-[51%]
-          top-[49%]
-          -translate-x-1/2
-          -translate-y-1/2
-        "
-      >
+      {open && (
         <div
           className="
             absolute
-            inset-[-16px]
-            rounded-full
-            bg-[#C6FF2E]/25
-            blur-xl
-          "
-        />
-
-        <div
-          className="
-            relative
-            flex
-            h-[76px]
-            w-[76px]
-            items-center
-            justify-center
-            rounded-full
-            border-[6px]
-            border-[#C6FF2E]
+            left-0
+            top-[calc(100%+10px)]
+            z-[100]
+            w-full
+            overflow-hidden
+            rounded-2xl
+            border
+            border-black/[0.08]
             bg-white
-            text-black
-            shadow-2xl
+            shadow-[0_25px_70px_rgba(0,0,0,0.16)]
           "
         >
-          <Navigation
-            size={31}
-            strokeWidth={2.4}
-            fill="currentColor"
-          />
-        </div>
-      </div>
+          <div
+            className="
+              border-b
+              border-black/[0.06]
+              p-3
+            "
+          >
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+                rounded-xl
+                bg-black/[0.04]
+                px-4
+                py-3
+              "
+            >
+              <Search size={18} className="text-black/40" />
 
-      {/* Pool Summary */}
-
-      <div
-        className="
-          absolute
-          bottom-8
-          left-8
-          w-[285px]
-          rounded-2xl
-          bg-white
-          p-6
-          text-black
-          shadow-2xl
-        "
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xl font-black tracking-tight">
-              Shared Tesla
-            </p>
-
-            <p className="mt-1 text-sm text-black/50">
-              Compatible route found
-            </p>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search area"
+                autoFocus
+                className="
+                  w-full
+                  bg-transparent
+                  text-sm
+                  font-medium
+                  text-black
+                  outline-none
+                  placeholder:text-black/35
+                "
+              />
+            </div>
           </div>
 
           <div
             className="
-              flex
-              items-center
-              gap-1
-              rounded-full
-              bg-[#C6FF2E]
-              px-3
-              py-2
-              text-xs
-              font-black
+              max-h-[290px]
+              overflow-y-auto
+              p-2
             "
           >
-            <Users size={14} />
+            {filteredLocations.map((location) => {
+              const selected = location === value;
 
-            {seats}
+              return (
+                <button
+                  type="button"
+                  key={location}
+                  onClick={() => handleSelect(location)}
+                  className={`
+                      flex
+                      w-full
+                      items-center
+                      justify-between
+                      rounded-xl
+                      px-4
+                      py-3.5
+                      text-left
+                      transition-all
+
+                      ${
+                        selected
+                          ? `
+                            bg-[#C6FF2E]
+                            text-black
+                          `
+                          : `
+                            text-black
+                            hover:bg-black/[0.05]
+                          `
+                      }
+                    `}
+                >
+                  <div
+                    className="
+                        flex
+                        items-center
+                        gap-3
+                      "
+                  >
+                    <div
+                      className={`
+                          flex
+                          h-9
+                          w-9
+                          items-center
+                          justify-center
+                          rounded-full
+
+                          ${
+                            selected
+                              ? `
+                                bg-black
+                                text-white
+                              `
+                              : `
+                                bg-black/[0.05]
+                                text-black
+                              `
+                          }
+                        `}
+                    >
+                      <MapPin size={16} />
+                    </div>
+
+                    <div>
+                      <p className="font-semibold">{formatZone(location)}</p>
+
+                      <p
+                        className={`
+                            mt-0.5
+                            text-xs
+
+                            ${selected ? "text-black/55" : "text-black/40"}
+                          `}
+                      >
+                        Dhaka
+                      </p>
+                    </div>
+                  </div>
+
+                  {selected && (
+                    <div
+                      className="
+                          flex
+                          h-8
+                          w-8
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-black
+                          text-white
+                        "
+                    >
+                      <Check size={17} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {filteredLocations.length === 0 && (
+              <div
+                className="
+                  px-4
+                  py-10
+                  text-center
+                "
+              >
+                <p className="text-sm font-semibold">No locations found</p>
+
+                <p className="mt-1 text-xs text-black/40">
+                  Try another Dhaka area.
+                </p>
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="my-5 h-px bg-black/10" />
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-black/40">
-              Vehicle
-            </p>
-
-            <p className="font-bold">
-              Tesla
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="text-xs text-black/40">
-              Capacity
-            </p>
-
-            <p className="font-bold">
-              {seats}/3 seats
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Destination Card */}
-
-      <div className="absolute bottom-[7%] right-[6%]">
-        <div
-          className="
-            rounded-2xl
-            bg-[#C6FF2E]
-            px-5
-            py-4
-            text-black
-            shadow-2xl
-          "
-        >
-          <div className="flex items-center gap-2 text-xs font-medium text-black/55">
-            <Navigation size={14} />
-
-            Destination
-          </div>
-
-          <p className="mt-1 text-lg font-black">
-            {formatZone(destination)}
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

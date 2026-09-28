@@ -48,30 +48,66 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
-        messages: "Email and password are required",
+        message: "Email and password are required",
       });
     }
 
-    // call service
+    console.log("LOGIN BODY:", {
+      email,
+      password,
+    });
+
     const result = await loginUser({
       email,
       password,
     });
+
+    console.log("LOGIN RESULT:", result);
+
+
+    res.cookie("token", result.token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: result.user,
+      },
+    });
+
   } catch (error: any) {
-    if (error.message === "INVALID_CREDENTIALS") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
+
+    console.log("LOGIN ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: error.message,
     });
   }
+};
+
+export const logout = (
+  req: Request,
+  res: Response,
+) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  });
+
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
 };
 
 export const getMe = async (req: AuthenticatedRequest, res: Response) => {
