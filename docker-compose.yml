@@ -15,5 +15,38 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  server:
+    build:
+      context: ./server
+    container_name: dhaka-tesla-pool-api
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/dhaka_tesla_pool
+      JWT_SECRET: your_secret_here
+      ADMIN_EMAIL: admin@gmail.com
+      NODE_ENV: production
+
+    ports:
+      - "5000:5000"
+
+    depends_on:
+      - postgres
+
+  client:
+    build:
+      context: ./client
+    container_name: dhaka-tesla-pool-client
+    restart: unless-stopped
+
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - server
+
 volumes:
   postgres_data:
