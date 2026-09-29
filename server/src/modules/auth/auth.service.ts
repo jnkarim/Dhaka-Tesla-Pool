@@ -96,6 +96,12 @@ export const loginUser = async (input: LoginInput) => {
     throw new Error("JWT_SECRET_MISSING");
   }
 
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+
+  const isAdmin =
+    !!adminEmail &&
+    user.email.trim().toLowerCase() === adminEmail;
+
   const token = jwt.sign(
     {
       userId: user.id,
@@ -115,6 +121,7 @@ export const loginUser = async (input: LoginInput) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      isAdmin,
     },
   };
 };
