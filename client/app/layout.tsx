@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "Dhaka Tesla Pool",
-  description: "Smart ride pooling for Dhaka commuters",
+  description: "Shared rides across Dhaka",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
