@@ -2,10 +2,19 @@ import prisma from "../../lib/prisma.js";
 
 import { isCompatibleRoute } from "./matching.js";
 
+const TESLA_CAPACITY = 3;
+
+// Find an existing compatible open pool
+
 export async function findCompatiblePool(pickup: string, destination: string) {
+  if (!isCompatibleRoute(pickup, destination)) {
+    return null;
+  }
+
   const pools = await prisma.pool.findMany({
     where: {
       status: "OPEN",
+      vehicleId: null,
     },
 
     include: {
@@ -14,8 +23,10 @@ export async function findCompatiblePool(pickup: string, destination: string) {
           rideRequest: true,
         },
       },
+    },
 
-      vehicle: true,
+    orderBy: {
+      createdAt: "asc",
     },
   });
 
@@ -26,9 +37,12 @@ export async function findCompatiblePool(pickup: string, destination: string) {
       continue;
     }
 
-    const compatible = isCompatibleRoute(pickup, destination);
+    const existingRouteCompatible = isCompatibleRoute(
+      existingRide.pickup,
+      existingRide.destination,
+    );
 
-    if (compatible) {
+    if (existingRouteCompatible) {
       return pool;
     }
   }
@@ -36,17 +50,18 @@ export async function findCompatiblePool(pickup: string, destination: string) {
   return null;
 }
 
-export async function createPool(vehicleId: string) {
-  const pool = await prisma.pool.create({
-    data: {
-      vehicleId,
+// Create an unassigned open pool
 
+export async function createPool() {
+  return prisma.pool.create({
+    data: {
+      vehicleId: null,
       status: "OPEN",
     },
   });
-
-  return pool;
 }
+
+// Check pool capacity
 
 export async function hasAvailableSeats(
   poolId: string,
@@ -59,7 +74,6 @@ export async function hasAvailableSeats(
 
     include: {
       members: true,
-
       vehicle: true,
     },
   });
@@ -68,41 +82,44 @@ export async function hasAvailableSeats(
     return false;
   }
 
-  const occupiedSeats = pool.members.reduce(
-    (total, member) => {
-      return total + member.seatsReserved;
-    },
+  if (pool.status !== "OPEN") {
+    return false;
+  }
 
+  const occupiedSeats = pool.members.reduce(
+    (total, member) => total + member.seatsReserved,
     0,
   );
 
-  return occupiedSeats + requestedSeats <= pool.vehicle.capacity;
+  const capacity = pool.vehicle?.capacity ?? TESLA_CAPACITY;
+
+  return occupiedSeats + requestedSeats <= capacity;
 }
+
+// Add ride request to pool
 
 export async function addPoolMember(
   poolId: string,
   rideRequestId: string,
   seats: number,
 ) {
-  const member = await prisma.poolMember.create({
+  return prisma.poolMember.create({
     data: {
       poolId,
-
       rideRequestId,
-
       seatsReserved: seats,
     },
   });
-
-  return member;
 }
+
+// Join an open pool with capacity validation
 
 export async function joinPoolSafely(
   poolId: string,
   rideRequestId: string,
   seats: number,
 ) {
-  return await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const pool = await tx.pool.findUnique({
       where: {
         id: poolId,
@@ -110,7 +127,6 @@ export async function joinPoolSafely(
 
       include: {
         members: true,
-
         vehicle: true,
       },
     });
@@ -119,28 +135,27 @@ export async function joinPoolSafely(
       throw new Error("POOL_NOT_FOUND");
     }
 
-    const occupiedSeats = pool.members.reduce(
-      (total, member) => {
-        return total + member.seatsReserved;
-      },
+    if (pool.status !== "OPEN") {
+      throw new Error("POOL_NOT_AVAILABLE");
+    }
 
+    const occupiedSeats = pool.members.reduce(
+      (total, member) => total + member.seatsReserved,
       0,
     );
 
-    if (occupiedSeats + seats > pool.vehicle.capacity) {
+    const capacity = pool.vehicle?.capacity ?? TESLA_CAPACITY;
+
+    if (occupiedSeats + seats > capacity) {
       throw new Error("NO_AVAILABLE_SEATS");
     }
 
-    const member = await tx.poolMember.create({
+    return tx.poolMember.create({
       data: {
         poolId,
-
         rideRequestId,
-
         seatsReserved: seats,
       },
     });
-
-    return member;
   });
 }
