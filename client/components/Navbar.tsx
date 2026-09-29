@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LoaderCircle, LogOut, Menu, X } from "lucide-react";
@@ -112,7 +113,11 @@ export default function Navbar() {
     }
   }
 
-  if (pathname === "/login" || pathname === "/register") {
+  if (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/admin")
+  ) {
     return null;
   }
 
@@ -122,10 +127,25 @@ export default function Navbar() {
     <header className="relative z-50 w-full border-b border-black/10 bg-white">
       <nav className="flex h-[100px] w-full items-stretch">
         {/* Logo */}
-        <div className="flex shrink-0 items-center justify-center bg-black px-8 lg:w-[400px]">
-          <Link href="/" onClick={() => setMobileOpen(false)} className="group">
+        <div className="flex shrink-0 items-center bg-black px-6 lg:w-[400px] lg:px-8">
+          <Link
+            href="/"
+            onClick={() => setMobileOpen(false)}
+            className="group flex items-center gap-3"
+          >
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden">
+              <Image
+                src="/icon.png"
+                alt="Dhaka Tesla Pool"
+                fill
+                priority
+                sizes="48px"
+                className="object-contain transition-transform duration-200 group-hover:scale-105"
+              />
+            </div>
+
             <span
-              className={`${logoFont.className} whitespace-nowrap text-[24px] font-black tracking-[-0.065em] text-white transition-transform duration-200 group-hover:scale-[1.02] lg:text-[29px]`}
+              className={`${logoFont.className} whitespace-nowrap text-[20px] font-black tracking-[-0.065em] text-white lg:text-[27px]`}
             >
               Dhaka
               <span className="text-[#C6FF2E]">Tesla</span>
