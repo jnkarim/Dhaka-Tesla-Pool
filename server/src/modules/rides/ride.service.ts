@@ -119,7 +119,6 @@ export async function createRide(
               const routesCompatible = pool.members.every((member) =>
                 isCompatibleRoute(
                   member.rideRequest.pickup,
-
                   member.rideRequest.destination,
                 ),
               );
@@ -182,9 +181,18 @@ export async function getCurrentRide(passengerId: string) {
     where: {
       passengerId,
 
-      status: {
-        in: ACTIVE_RIDE_STATUSES,
-      },
+      OR: [
+        {
+          status: {
+            in: ACTIVE_RIDE_STATUSES,
+          },
+        },
+
+        {
+          status: "COMPLETED",
+          paymentStatus: "PENDING",
+        },
+      ],
     },
 
     include: {
