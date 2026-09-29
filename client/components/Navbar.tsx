@@ -127,14 +127,14 @@ export default function Navbar() {
     <header className="relative z-50 w-full border-b border-black/10 bg-white">
       <nav className="flex h-[100px] w-full items-stretch">
         {/* Logo */}
-        <div className="flex shrink-0 items-center bg-black px-6 lg:w-[400px] lg:px-8">
+        <div className="flex h-full shrink-0 items-center justify-center bg-black lg:w-[400px]">
           <Link
             href="/"
             onClick={() => setMobileOpen(false)}
-            className="group flex items-center gap-3"
+            className=" flex items-center justify-center"
           >
             <span
-              className={`${logoFont.className} whitespace-nowrap text-[20px] font-black tracking-[-0.065em] text-white lg:text-[27px]`}
+              className={` ${logoFont.className} flex items-center whitespace-nowrap text-[20px] font-black leading-none tracking-[-0.065em] text-white lg:text-[27px]`}
             >
               Dhaka
               <span className="text-[#C6FF2E]">Tesla</span>
@@ -142,7 +142,6 @@ export default function Navbar() {
             </span>
           </Link>
         </div>
-
         {/* Desktop */}
         <div className="hidden flex-1 items-stretch justify-end lg:flex">
           {navigationLoading ? (

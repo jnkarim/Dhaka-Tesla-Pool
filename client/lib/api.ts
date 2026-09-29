@@ -24,29 +24,37 @@ export async function api<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
 
-    credentials: "include",
+      credentials: "include",
 
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
 
-  const data = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    const errorData = data as ApiErrorResponse | null;
+    if (!response.ok) {
+      const errorData = data as ApiErrorResponse | null;
 
-    const message =
-      errorData?.message ??
-      errorData?.error?.message ??
-      "Something went wrong.";
+      const message =
+        errorData?.message ??
+        errorData?.error?.message ??
+        "Something went wrong.";
 
-    throw new ApiError(message, response.status);
+      throw new ApiError(message, response.status);
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError("Sign in to request a Tesla pool ride.", 0);
   }
-
-  return data as T;
 }

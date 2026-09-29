@@ -1,18 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
+  ArrowDownUp,
   ArrowRight,
   Banknote,
   Car,
   Check,
   CheckCircle2,
-  ChevronDown,
   Circle,
+  Lock,
   LoaderCircle,
   MapPin,
-  Minus,
-  Plus,
   Route,
   Users,
   XCircle,
@@ -50,6 +50,8 @@ type RideStatus =
   | "CANCELLED";
 
 type PaymentStatus = "PENDING" | "COMPLETED";
+
+type ActiveField = "pickup" | "destination";
 
 type Ride = {
   id: string;
@@ -183,6 +185,26 @@ const rideSteps: {
   },
 ];
 
+function isAuthError(error: unknown) {
+  const message = (
+    error instanceof Error ? error.message : String(error ?? "")
+  ).toLowerCase();
+
+  return [
+    "unauthorized",
+    "unauthorised",
+    "unauthenticated",
+    "not authenticated",
+    "not logged in",
+    "sign in",
+    "login",
+    "token",
+    "401",
+    "forbidden",
+    "403",
+  ].some((keyword) => message.includes(keyword));
+}
+
 function getCoordinates(zone: DhakaZone): [number, number] {
   return (
     locations.find((location) => location.value === zone)?.coordinates ?? [
@@ -257,6 +279,8 @@ export default function PassengerPage() {
 
   const [destination, setDestination] = useState<DhakaZone>("MOHAKHALI");
 
+  const [activeField, setActiveField] = useState<ActiveField>("pickup");
+
   const [seats, setSeats] = useState(1);
 
   const [loading, setLoading] = useState(false);
@@ -276,6 +300,8 @@ export default function PassengerPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const [currentRide, setCurrentRide] = useState<Ride | null>(null);
+
+  const [authenticated, setAuthenticated] = useState(true);
 
   const pickupCoordinates = getCoordinates(pickup);
 
@@ -327,9 +353,15 @@ export default function PassengerPage() {
           setSeats(querySeats);
         }
       } catch (error) {
-        setError(
-          error instanceof Error ? error.message : "Could not load your ride.",
-        );
+        if (isAuthError(error)) {
+          setAuthenticated(false);
+        } else {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Could not load your ride.",
+          );
+        }
       } finally {
         setInitialLoading(false);
       }
@@ -366,9 +398,35 @@ export default function PassengerPage() {
     };
   }, [currentRide?.id]);
 
+  function selectZone(zone: DhakaZone) {
+    setError("");
+
+    if (activeField === "pickup") {
+      setPickup(zone);
+
+      setActiveField("destination");
+
+      return;
+    }
+
+    setDestination(zone);
+  }
+
+  function swapRoute() {
+    setError("");
+
+    setPickup(destination);
+
+    setDestination(pickup);
+  }
+
   async function requestRide() {
     setError("");
     setSuccessMessage("");
+
+    if (!authenticated) {
+      return;
+    }
 
     if (pickup === destination) {
       setError("Pickup and destination cannot be the same.");
@@ -395,9 +453,15 @@ export default function PassengerPage() {
 
       setPaymentError("");
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Could not request the ride.",
-      );
+      if (isAuthError(error)) {
+        setAuthenticated(false);
+      } else {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to request your ride. Please try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -498,18 +562,16 @@ export default function PassengerPage() {
     <main className="min-h-screen bg-[#F8F8FA] px-6 py-12 text-black lg:px-10">
       <div className="mx-auto max-w-[1400px]">
         <div className="mb-10">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-black/40">
-            Passenger
-          </p>
+          <p className="text-sm font-semibold text-black/40">Passenger</p>
 
-          <h1 className="mt-3 text-[42px] font-semibold tracking-[-0.05em]">
+          <h1 className="mt-2 text-[44px] font-semibold leading-none tracking-[-0.05em]">
             {currentRide ? "Your ride" : "Where to?"}
           </h1>
 
-          <p className="mt-3 text-black/50">
+          <p className="mt-4 text-black/50">
             {currentRide
               ? "Follow your Tesla pool status in real time."
-              : "Choose your route and request a Tesla pool."}
+              : "Pick your pickup and destination, then request a Tesla pool."}
           </p>
         </div>
 
@@ -525,90 +587,118 @@ export default function PassengerPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
-          <section className="rounded-2xl border border-black/10 bg-white p-7">
+        <div className="grid gap-6 lg:grid-cols-[440px_1fr]">
+          <section className="rounded-3xl border border-black/10 bg-white p-6 sm:p-7">
             {!currentRide ? (
               <>
-                <h2 className="text-lg font-semibold">Ride details</h2>
-
-                <SelectBox label="Pickup" value={pickup} setValue={setPickup} />
-
-                <SelectBox
-                  label="Destination"
-                  value={destination}
-                  setValue={setDestination}
+                <RouteSelector
+                  pickup={pickup}
+                  destination={destination}
+                  activeField={activeField}
+                  onActivate={setActiveField}
+                  onSelect={selectZone}
+                  onSwap={swapRoute}
                 />
 
-                <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white">
-                      <Users size={18} />
+                <div className="mt-7">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Users size={17} />
+
+                      <p className="text-sm font-semibold">Passengers</p>
+                    </div>
+
+                    <p className="text-xs text-black/40">Up to 3 seats</p>
+                  </div>
+
+                  <div
+                    role="radiogroup"
+                    aria-label="Number of seats"
+                    className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-black/[0.05] p-1"
+                  >
+                    {[1, 2, 3].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        role="radio"
+                        aria-checked={seats === count}
+                        onClick={() => setSeats(count)}
+                        className={`h-11 rounded-lg text-sm font-semibold transition ${
+                          seats === count
+                            ? "bg-black text-white shadow-sm"
+                            : "text-black/50 hover:text-black"
+                        }`}
+                      >
+                        {count} {count === 1 ? "seat" : "seats"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-start gap-3 rounded-xl border border-black/10 p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C6FF2E]">
+                    <Banknote size={17} />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold">Pay in cash</p>
+
+                    <p className="mt-0.5 text-sm leading-5 text-black/50">
+                      Hand the fare to your driver when the ride ends.
+                    </p>
+                  </div>
+                </div>
+
+                {!authenticated && (
+                  <div className="mt-6 flex items-start gap-3 rounded-xl border border-black/10 bg-black/[0.03] p-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-[#C6FF2E]">
+                      <Lock size={16} />
                     </div>
 
                     <div>
-                      <p className="text-sm font-semibold">Passengers</p>
+                      <p className="text-sm font-semibold">Sign in required</p>
 
-                      <p className="text-xs text-black/40">Maximum 3 seats</p>
+                      <p className="mt-0.5 text-sm leading-5 text-black/50">
+                        Sign in to request a Tesla pool ride.
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSeats((current) => Math.max(1, current - 1))
-                      }
-                      disabled={seats === 1}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border border-black/20 transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <Minus size={16} />
-                    </button>
-
-                    <span className="flex h-10 w-7 items-center justify-center text-base font-semibold">
-                      {seats}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSeats((current) => Math.min(3, current + 1))
-                      }
-                      disabled={seats === 3}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white transition hover:bg-[#C6FF2E] hover:text-black disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-xl border border-black/10 bg-black/[0.03] p-4">
-                  <div className="flex items-center gap-2">
-                    <Banknote size={17} />
-
-                    <p className="text-sm font-semibold">Cash payment</p>
-                  </div>
-
-                  <p className="mt-2 text-sm text-black/50">
-                    Pay your driver in cash after completing the ride.
-                  </p>
-                </div>
+                )}
 
                 {error && (
-                  <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  <div
+                    role="alert"
+                    className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                  >
                     {error}
                   </div>
+                )}
+
+                {!authenticated && (
+                  <Link
+                    href="/login"
+                    className="mt-4 flex h-12 w-full items-center justify-center rounded-xl border border-black text-sm font-semibold transition hover:bg-black hover:text-white"
+                  >
+                    Sign in
+                  </Link>
                 )}
 
                 <button
                   type="button"
                   onClick={requestRide}
-                  disabled={loading}
-                  className="group mt-7 flex h-[58px] w-full items-center justify-center gap-3 rounded-xl bg-black font-semibold text-white transition hover:bg-[#C6FF2E] hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={loading || !authenticated}
+                  aria-disabled={loading || !authenticated}
+                  className="group mt-6 flex h-[58px] w-full items-center justify-center gap-3 rounded-xl bg-black font-semibold text-white transition enabled:hover:bg-[#C6FF2E] enabled:hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:pointer-events-none disabled:opacity-50"
                 >
                   {loading ? (
                     <>
                       <LoaderCircle size={18} className="animate-spin" />
                       Requesting...
+                    </>
+                  ) : !authenticated ? (
+                    <>
+                      <Lock size={17} />
+                      Sign in to request
                     </>
                   ) : (
                     <>
@@ -635,7 +725,7 @@ export default function PassengerPage() {
           </section>
 
           {!currentRide ? (
-            <section className="min-h-[620px] overflow-hidden rounded-2xl border border-black/10">
+            <section className="min-h-[620px] overflow-hidden rounded-3xl border border-black/10">
               <RideMap
                 pickup={pickupCoordinates}
                 destination={destinationCoordinates}
@@ -647,6 +737,128 @@ export default function PassengerPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function RouteSelector({
+  pickup,
+  destination,
+  activeField,
+  onActivate,
+  onSelect,
+  onSwap,
+}: {
+  pickup: DhakaZone;
+  destination: DhakaZone;
+  activeField: ActiveField;
+  onActivate: (field: ActiveField) => void;
+  onSelect: (zone: DhakaZone) => void;
+  onSwap: () => void;
+}) {
+  const rows: {
+    field: ActiveField;
+    label: string;
+    value: DhakaZone;
+  }[] = [
+    { field: "pickup", label: "Pickup", value: pickup },
+    { field: "destination", label: "Destination", value: destination },
+  ];
+
+  const otherValue = activeField === "pickup" ? destination : pickup;
+
+  const selectedValue = activeField === "pickup" ? pickup : destination;
+
+  return (
+    <div>
+      <div className="relative rounded-2xl bg-black/[0.04] p-1.5">
+        {/* timeline connector */}
+        <div className="pointer-events-none absolute left-[27px] top-[46px] h-[calc(100%-92px)] border-l border-dashed border-black/25" />
+
+        {rows.map((row) => {
+          const active = activeField === row.field;
+
+          return (
+            <button
+              key={row.field}
+              type="button"
+              onClick={() => onActivate(row.field)}
+              aria-pressed={active}
+              className={`flex w-full items-center gap-4 rounded-xl border px-4 py-3.5 pr-16 text-left transition ${
+                active
+                  ? "border-black bg-white"
+                  : "border-transparent hover:bg-white/60"
+              }`}
+            >
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                {row.field === "pickup" ? (
+                  <span className="h-3 w-3 rounded-full border-[3px] border-black bg-white" />
+                ) : (
+                  <span className="h-3 w-3 bg-black" />
+                )}
+              </span>
+
+              <span className="min-w-0">
+                <span className="block text-xs font-medium text-black/40">
+                  {row.label}
+                </span>
+
+                <span className="mt-0.5 block truncate text-[17px] font-semibold tracking-[-0.01em]">
+                  {getZoneLabel(row.value)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onSwap}
+          aria-label="Swap pickup and destination"
+          className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white transition hover:border-black hover:bg-black hover:text-[#C6FF2E]"
+        >
+          <ArrowDownUp size={16} />
+        </button>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-sm font-semibold">
+          {activeField === "pickup"
+            ? "Choose pickup area"
+            : "Choose destination area"}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {locations.map((location) => {
+            const selected = location.value === selectedValue;
+
+            const taken = location.value === otherValue;
+
+            return (
+              <button
+                key={location.value}
+                type="button"
+                onClick={() => onSelect(location.value)}
+                disabled={taken}
+                aria-pressed={selected}
+                className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition ${
+                  selected
+                    ? "border-black bg-black text-white"
+                    : taken
+                      ? "cursor-not-allowed border-black/5 bg-black/[0.03] text-black/25"
+                      : "border-black/15 bg-white text-black/70 hover:border-black hover:text-black"
+                }`}
+              >
+                {selected && (
+                  <Check size={14} strokeWidth={3} className="text-[#C6FF2E]" />
+                )}
+
+                {location.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -681,27 +893,37 @@ function CurrentRide({
         <CheckCircle2 size={22} />
       </div>
 
-      <p className="mt-7 text-xs font-bold uppercase tracking-[0.16em] text-black/40">
-        Current ride
-      </p>
+      <p className="mt-7 text-sm font-semibold text-black/40">Current ride</p>
 
-      <h2 className="mt-2 text-[26px] font-semibold tracking-[-0.03em]">
+      <h2 className="mt-1 text-[28px] font-semibold tracking-[-0.03em]">
         {getRideTitle(ride.status)}
       </h2>
 
-      <div className="mt-8">
-        <div>
-          <p className="text-xs text-black/40">Pickup</p>
+      <div className="mt-8 flex gap-4">
+        <div className="flex flex-col items-center pt-1.5">
+          <span className="h-3 w-3 rounded-full border-[3px] border-black bg-white" />
 
-          <p className="mt-1 font-semibold">{getZoneLabel(ride.pickup)}</p>
+          <span className="my-1 h-10 border-l border-dashed border-black/25" />
+
+          <span className="h-3 w-3 bg-black" />
         </div>
 
-        <div className="my-4 ml-[5px] h-8 border-l border-dashed border-black/20" />
+        <div className="flex flex-col justify-between gap-5">
+          <div>
+            <p className="text-xs text-black/40">Pickup</p>
 
-        <div>
-          <p className="text-xs text-black/40">Destination</p>
+            <p className="mt-0.5 text-lg font-semibold">
+              {getZoneLabel(ride.pickup)}
+            </p>
+          </div>
 
-          <p className="mt-1 font-semibold">{getZoneLabel(ride.destination)}</p>
+          <div>
+            <p className="text-xs text-black/40">Destination</p>
+
+            <p className="mt-0.5 text-lg font-semibold">
+              {getZoneLabel(ride.destination)}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -847,15 +1069,15 @@ function RideProgress({ ride }: { ride: Ride }) {
   const vehicle = ride.poolMember?.pool?.vehicle;
 
   return (
-    <section className="min-h-[620px] overflow-hidden rounded-2xl border border-black/10 bg-white">
+    <section className="min-h-[620px] overflow-hidden rounded-3xl border border-black/10 bg-white">
       <div className="border-b border-black/10 bg-black p-7 text-white">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/40">
+            <p className="text-sm font-semibold text-white/40">
               Live ride status
             </p>
 
-            <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.04em]">
+            <h2 className="mt-2 text-[30px] font-semibold tracking-[-0.04em]">
               {getRideTitle(ride.status)}
             </h2>
 
@@ -868,7 +1090,7 @@ function RideProgress({ ride }: { ride: Ride }) {
             </div>
           </div>
 
-          <div className="rounded-full bg-[#C6FF2E] px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] text-black">
+          <div className="rounded-full bg-[#C6FF2E] px-4 py-2 text-sm font-bold text-black">
             {formatStatus(ride.status)}
           </div>
         </div>
@@ -876,7 +1098,7 @@ function RideProgress({ ride }: { ride: Ride }) {
 
       <div className="grid gap-10 p-7 md:grid-cols-[1fr_260px] md:p-10">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-black/35">
+          <p className="text-sm font-semibold text-black/40">
             Journey progress
           </p>
 
@@ -933,7 +1155,7 @@ function RideProgress({ ride }: { ride: Ride }) {
                       </p>
 
                       {current && (
-                        <span className="rounded-full bg-black px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#C6FF2E]">
+                        <span className="rounded-full bg-black px-2.5 py-1 text-[11px] font-bold text-[#C6FF2E]">
                           Current
                         </span>
                       )}
@@ -1011,9 +1233,7 @@ function RideProgress({ ride }: { ride: Ride }) {
           </div>
 
           <div className="mt-4 rounded-2xl bg-[#C6FF2E] p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-black/50">
-              Fare
-            </p>
+            <p className="text-xs font-semibold text-black/50">Fare</p>
 
             <p className="mt-2 text-[28px] font-semibold tracking-[-0.04em]">
               ৳{(ride.estimatedFarePoisha / 100).toFixed(0)}
@@ -1026,37 +1246,5 @@ function RideProgress({ ride }: { ride: Ride }) {
         </aside>
       </div>
     </section>
-  );
-}
-
-function SelectBox({
-  label,
-  value,
-  setValue,
-}: {
-  label: string;
-  value: DhakaZone;
-  setValue: (value: DhakaZone) => void;
-}) {
-  return (
-    <div className="mt-5 rounded-xl border border-black/10 bg-white px-4 py-3 transition focus-within:border-black">
-      <p className="text-xs font-medium text-black/40">{label}</p>
-
-      <div className="flex items-center">
-        <select
-          value={value}
-          onChange={(event) => setValue(event.target.value as DhakaZone)}
-          className="mt-1 w-full appearance-none bg-transparent font-semibold text-black outline-none"
-        >
-          {locations.map((location) => (
-            <option key={location.value} value={location.value}>
-              {location.label}
-            </option>
-          ))}
-        </select>
-
-        <ChevronDown size={16} className="pointer-events-none text-black/40" />
-      </div>
-    </div>
   );
 }

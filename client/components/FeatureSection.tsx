@@ -80,14 +80,6 @@ export default function FeatureSection() {
                 <span className="rounded-full bg-black/[0.06] px-4 py-2 text-sm font-semibold">
                   Ride status
                 </span>
-
-                <Link
-                  href="/register"
-                  aria-label="Register as passenger"
-                  className="ml-1 flex h-11 w-11 items-center justify-center rounded-full bg-black text-white transition-all duration-200 hover:bg-[#C6FF2E] hover:text-black"
-                >
-                  <ArrowUpRight size={20} />
-                </Link>
               </div>
             </div>
           </article>
@@ -144,14 +136,6 @@ export default function FeatureSection() {
                 <span className="rounded-full bg-black/[0.06] px-4 py-2 text-sm font-semibold">
                   Manage trip
                 </span>
-
-                <Link
-                  href="/register?role=driver"
-                  aria-label="Register as driver"
-                  className="ml-1 flex h-11 w-11 items-center justify-center rounded-full bg-black text-white transition-all duration-200 hover:bg-[#C6FF2E] hover:text-black"
-                >
-                  <ArrowUpRight size={20} />
-                </Link>
               </div>
             </div>
           </article>
