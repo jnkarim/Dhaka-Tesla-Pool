@@ -18,13 +18,14 @@ services:
   server:
     build:
       context: ./server
+
     container_name: dhaka-tesla-pool-api
     restart: unless-stopped
 
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/dhaka_tesla_pool
-      JWT_SECRET: your_secret_here
-      ADMIN_EMAIL: admin@gmail.com
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
       NODE_ENV: production
 
     ports:
@@ -36,6 +37,7 @@ services:
   client:
     build:
       context: ./client
+
     container_name: dhaka-tesla-pool-client
     restart: unless-stopped
 
