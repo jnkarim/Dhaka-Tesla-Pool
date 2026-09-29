@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
-import prisma from "../../lib/prisma.js";
 import jwt from "jsonwebtoken";
+
+import prisma from "../../lib/prisma.js";
 
 type RegisterInput = {
   name: string;
@@ -15,8 +16,8 @@ type LoginInput = {
 };
 
 // Register
-export const registerUser = async (input: RegisterInput) => {
 
+export const registerUser = async (input: RegisterInput) => {
   const existingUser = await prisma.user.findUnique({
     where: {
       email: input.email,
@@ -29,27 +30,46 @@ export const registerUser = async (input: RegisterInput) => {
 
   const passwordHash = await bcrypt.hash(input.password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      passwordHash,
-      role: input.role,
-    },
-    // response object
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
+      data: {
+        name: input.name,
+        email: input.email,
+        passwordHash,
+        role: input.role,
+      },
+    });
+
+    if (input.role === "DRIVER") {
+      await tx.vehicle.create({
+        data: {
+          name: `${input.name}'s Tesla`,
+
+          plateNumber: `DTP-${createdUser.id.slice(-8).toUpperCase()}`,
+
+          capacity: 3,
+
+          isOnline: false,
+
+          driverId: createdUser.id,
+        },
+      });
+    }
+
+    return {
+      id: createdUser.id,
+      name: createdUser.name,
+      email: createdUser.email,
+      role: createdUser.role,
+      createdAt: createdUser.createdAt,
+    };
   });
 
   return user;
 };
 
 // Login
+
 export const loginUser = async (input: LoginInput) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -76,7 +96,6 @@ export const loginUser = async (input: LoginInput) => {
     throw new Error("JWT_SECRET_MISSING");
   }
 
-  // token create
   const token = jwt.sign(
     {
       userId: user.id,
@@ -90,6 +109,7 @@ export const loginUser = async (input: LoginInput) => {
 
   return {
     token,
+
     user: {
       id: user.id,
       name: user.name,
