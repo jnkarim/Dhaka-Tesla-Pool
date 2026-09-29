@@ -7,6 +7,7 @@ import {
   getCurrentRideController,
   getPassengerRideHistoryController,
   updateRideStatusController,
+  cancelRideController,
 } from "./ride.controller.js";
 
 import { authenticate } from "../../middleware/authenticate.js";
@@ -38,5 +39,7 @@ router.patch(
   authenticate,
   confirmDriverPaymentController,
 );
+
+router.patch("/:id/cancel", authenticate, cancelRideController);
 
 export default router;

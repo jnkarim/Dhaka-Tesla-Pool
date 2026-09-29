@@ -9,6 +9,7 @@ import {
   getCurrentRide,
   getPassengerRideHistory,
   updateRideStatus,
+  cancelRide
 } from "./ride.service.js";
 
 // Create ride
@@ -336,6 +337,71 @@ export async function confirmDriverPaymentController(
     return res.status(400).json({
       success: false,
       message,
+    });
+  }
+}
+
+export async function cancelRideController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (req.user.role !== "PASSENGER") {
+      return res.status(403).json({
+        success: false,
+        message: "Passenger access only",
+      });
+    }
+
+    const rideId = req.params.id;
+
+    if (!rideId || Array.isArray(rideId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ride id",
+      });
+    }
+
+    const ride = await cancelRide(rideId, req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: ride,
+    });
+  } catch (error) {
+    const message = (error as Error).message;
+
+    if (message === "RIDE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Ride not found",
+      });
+    }
+
+    if (message === "UNAUTHORIZED") {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot cancel this ride",
+      });
+    }
+
+    if (message === "RIDE_CANNOT_BE_CANCELLED") {
+      return res.status(409).json({
+        success: false,
+        message: "This ride can no longer be cancelled",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 }

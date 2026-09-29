@@ -10,6 +10,13 @@ const MAX_POOL_CAPACITY = 3;
 
 const MAX_TRANSACTION_RETRIES = 3;
 
+const ACTIVE_RIDE_STATUSES: RideStatus[] = [
+  "REQUESTED",
+  "MATCHED",
+  "DRIVER_ARRIVED",
+  "STARTED",
+];
+
 // Create ride request and assign it to an open pool
 
 export async function createRide(
@@ -36,19 +43,9 @@ export async function createRide(
             where: {
               passengerId,
 
-              OR: [
-                {
-                  status: {
-                    notIn: ["COMPLETED", "CANCELLED"],
-                  },
-                },
-
-                {
-                  status: "COMPLETED",
-
-                  paymentStatus: "PENDING",
-                },
-              ],
+              status: {
+                in: ACTIVE_RIDE_STATUSES,
+              },
             },
           });
 
@@ -185,19 +182,9 @@ export async function getCurrentRide(passengerId: string) {
     where: {
       passengerId,
 
-      OR: [
-        {
-          status: {
-            notIn: ["COMPLETED", "CANCELLED"],
-          },
-        },
-
-        {
-          status: "COMPLETED",
-
-          paymentStatus: "PENDING",
-        },
-      ],
+      status: {
+        in: ACTIVE_RIDE_STATUSES,
+      },
     },
 
     include: {
@@ -344,8 +331,78 @@ export async function updateRideStatus(rideId: string, nextStatus: RideStatus) {
 
 // Cancel ride
 
-export async function cancelRide(rideId: string) {
-  return updateRideStatus(rideId, "CANCELLED");
+export async function cancelRide(rideId: string, passengerId: string) {
+  const ride = await prisma.rideRequest.findUnique({
+    where: {
+      id: rideId,
+    },
+
+    include: {
+      poolMember: true,
+    },
+  });
+
+  if (!ride) {
+    throw new Error("RIDE_NOT_FOUND");
+  }
+
+  if (ride.passengerId !== passengerId) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  if (ride.status !== "REQUESTED") {
+    throw new Error("RIDE_CANNOT_BE_CANCELLED");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updatedRide = await tx.rideRequest.update({
+      where: {
+        id: rideId,
+      },
+
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    await tx.rideStatusHistory.create({
+      data: {
+        rideRequestId: rideId,
+
+        status: "CANCELLED",
+      },
+    });
+
+    if (ride.poolMember) {
+      const poolId = ride.poolMember.poolId;
+
+      await tx.poolMember.delete({
+        where: {
+          id: ride.poolMember.id,
+        },
+      });
+
+      const remainingMembers = await tx.poolMember.count({
+        where: {
+          poolId,
+        },
+      });
+
+      if (remainingMembers === 0) {
+        await tx.pool.deleteMany({
+          where: {
+            id: poolId,
+
+            status: "OPEN",
+
+            vehicleId: null,
+          },
+        });
+      }
+    }
+
+    return updatedRide;
+  });
 }
 
 // Passenger confirms cash payment
