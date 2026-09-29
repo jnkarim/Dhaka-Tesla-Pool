@@ -133,17 +133,6 @@ export default function Navbar() {
             onClick={() => setMobileOpen(false)}
             className="group flex items-center gap-3"
           >
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden">
-              <Image
-                src="/icon.png"
-                alt="Dhaka Tesla Pool"
-                fill
-                priority
-                sizes="48px"
-                className="object-contain transition-transform duration-200 group-hover:scale-105"
-              />
-            </div>
-
             <span
               className={`${logoFont.className} whitespace-nowrap text-[20px] font-black tracking-[-0.065em] text-white lg:text-[27px]`}
             >
@@ -172,7 +161,6 @@ export default function Navbar() {
           {navigationLoading ? (
             <div className="flex items-center gap-2 text-sm font-semibold text-black/45">
               <LoaderCircle size={19} className="animate-spin" />
-
               {logoutLoading && "Logging out..."}
             </div>
           ) : (
