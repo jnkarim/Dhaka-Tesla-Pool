@@ -2,6 +2,7 @@
 
 import {
   Car,
+  CheckCircle2,
   LoaderCircle,
   MapPin,
   Power,
@@ -75,6 +76,15 @@ type AvailablePoolsResponse = {
   data: AvailablePool[];
 };
 
+type AcceptPoolResponse = {
+  success: boolean;
+
+  data: {
+    id: string;
+    status: "ACCEPTED";
+  };
+};
+
 const zoneLabels: Record<DhakaZone, string> = {
   KHILGAON: "Khilgaon",
   BANANI: "Banani",
@@ -103,9 +113,15 @@ export default function DriverPage() {
 
   const [poolsLoading, setPoolsLoading] = useState(false);
 
+  const [acceptingPoolId, setAcceptingPoolId] = useState<string | null>(null);
+
+  const [acceptedPool, setAcceptedPool] = useState(false);
+
   const [error, setError] = useState("");
 
   const [poolError, setPoolError] = useState("");
+
+  const [poolMessage, setPoolMessage] = useState("");
 
   useEffect(() => {
     async function loadVehicle() {
@@ -126,7 +142,7 @@ export default function DriverPage() {
   }, []);
 
   useEffect(() => {
-    if (!vehicle?.isOnline) {
+    if (!vehicle?.isOnline || acceptedPool) {
       setPools([]);
       setPoolError("");
 
@@ -153,7 +169,7 @@ export default function DriverPage() {
     }
 
     loadPools();
-  }, [vehicle?.isOnline]);
+  }, [vehicle?.isOnline, acceptedPool]);
 
   async function toggleOnlineStatus() {
     if (!vehicle || statusLoading) {
@@ -173,6 +189,12 @@ export default function DriverPage() {
       });
 
       setVehicle(response.data);
+
+      if (!response.data.isOnline) {
+        setPools([]);
+        setPoolError("");
+        setPoolMessage("");
+      }
     } catch (error) {
       setError(
         error instanceof Error
@@ -181,6 +203,36 @@ export default function DriverPage() {
       );
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  async function acceptAvailablePool(poolId: string) {
+    if (acceptingPoolId) {
+      return;
+    }
+
+    try {
+      setPoolError("");
+      setPoolMessage("");
+      setAcceptingPoolId(poolId);
+
+      await api<AcceptPoolResponse>(`/drivers/pools/${poolId}/accept`, {
+        method: "PATCH",
+      });
+
+      setPools([]);
+
+      setAcceptedPool(true);
+
+      setPoolMessage(
+        "Pool accepted successfully. Passenger rides are now matched.",
+      );
+    } catch (error) {
+      setPoolError(
+        error instanceof Error ? error.message : "Could not accept this pool.",
+      );
+    } finally {
+      setAcceptingPoolId(null);
     }
   }
 
@@ -341,17 +393,21 @@ export default function DriverPage() {
                 </p>
 
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                  {vehicle.isOnline
-                    ? `${pools.length} available ${
-                        pools.length === 1 ? "pool" : "pools"
-                      }`
-                    : "You are offline"}
+                  {acceptedPool
+                    ? "Pool accepted"
+                    : vehicle.isOnline
+                      ? `${pools.length} available ${
+                          pools.length === 1 ? "pool" : "pools"
+                        }`
+                      : "You are offline"}
                 </h2>
 
                 <p className="mt-3 text-sm leading-6 text-white/50">
-                  {vehicle.isOnline
-                    ? "Open passenger pools are shown below."
-                    : "Go online to start receiving available ride pools."}
+                  {acceptedPool
+                    ? "You now have an active Tesla pool."
+                    : vehicle.isOnline
+                      ? "Open passenger pools are shown below."
+                      : "Go online to start receiving available ride pools."}
                 </p>
 
                 <div className="mt-8 border-t border-white/10 pt-6">
@@ -381,20 +437,25 @@ export default function DriverPage() {
                     </p>
 
                     <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                      Ride requests near you
+                      {acceptedPool ? "Active pool assigned" : "Ride requests"}
                     </h2>
                   </div>
 
-                  {!poolsLoading && (
+                  {!poolsLoading && !acceptedPool && (
                     <p className="text-sm text-black/40">{pools.length} open</p>
                   )}
                 </div>
 
-                {poolsLoading && (
-                  <div className="mt-6 flex min-h-[220px] items-center justify-center rounded-2xl border border-black/10 bg-white">
-                    <div className="flex items-center gap-3 text-sm text-black/45">
-                      <LoaderCircle size={18} className="animate-spin" />
-                      Loading available pools...
+                {poolMessage && (
+                  <div className="mt-6 flex items-start gap-3 rounded-2xl border border-[#C6FF2E] bg-[#C6FF2E]/15 p-5">
+                    <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
+
+                    <div>
+                      <p className="font-semibold">Pool accepted</p>
+
+                      <p className="mt-1 text-sm text-black/55">
+                        {poolMessage}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -405,30 +466,51 @@ export default function DriverPage() {
                   </div>
                 )}
 
-                {!poolsLoading && !poolError && pools.length === 0 && (
-                  <div className="mt-6 flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-black/15 bg-white px-6 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black">
-                      <Route size={22} className="text-[#C6FF2E]" />
+                {!acceptedPool && poolsLoading && (
+                  <div className="mt-6 flex min-h-[220px] items-center justify-center rounded-2xl border border-black/10 bg-white">
+                    <div className="flex items-center gap-3 text-sm text-black/45">
+                      <LoaderCircle size={18} className="animate-spin" />
+                      Loading available pools...
                     </div>
-
-                    <h3 className="mt-5 text-lg font-semibold">
-                      No open pools right now
-                    </h3>
-
-                    <p className="mt-2 max-w-sm text-sm leading-6 text-black/45">
-                      New passenger ride requests will appear here while you are
-                      online.
-                    </p>
                   </div>
                 )}
 
-                {!poolsLoading && !poolError && pools.length > 0 && (
-                  <div className="mt-6 grid gap-5">
-                    {pools.map((pool) => (
-                      <PoolCard key={pool.id} pool={pool} />
-                    ))}
-                  </div>
-                )}
+                {!acceptedPool &&
+                  !poolsLoading &&
+                  !poolError &&
+                  pools.length === 0 && (
+                    <div className="mt-6 flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-black/15 bg-white px-6 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black">
+                        <Route size={22} className="text-[#C6FF2E]" />
+                      </div>
+
+                      <h3 className="mt-5 text-lg font-semibold">
+                        No open pools right now
+                      </h3>
+
+                      <p className="mt-2 max-w-sm text-sm leading-6 text-black/45">
+                        New passenger ride requests will appear here while you
+                        are online.
+                      </p>
+                    </div>
+                  )}
+
+                {!acceptedPool &&
+                  !poolsLoading &&
+                  !poolError &&
+                  pools.length > 0 && (
+                    <div className="mt-6 grid gap-5">
+                      {pools.map((pool) => (
+                        <PoolCard
+                          key={pool.id}
+                          pool={pool}
+                          accepting={acceptingPoolId === pool.id}
+                          disabled={acceptingPoolId !== null}
+                          onAccept={() => acceptAvailablePool(pool.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
               </section>
             )}
           </>
@@ -438,7 +520,17 @@ export default function DriverPage() {
   );
 }
 
-function PoolCard({ pool }: { pool: AvailablePool }) {
+function PoolCard({
+  pool,
+  accepting,
+  disabled,
+  onAccept,
+}: {
+  pool: AvailablePool;
+  accepting: boolean;
+  disabled: boolean;
+  onAccept: () => void;
+}) {
   return (
     <article className="overflow-hidden rounded-2xl border border-black/10 bg-white">
       <div className="flex flex-col gap-6 border-b border-black/10 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -457,7 +549,7 @@ function PoolCard({ pool }: { pool: AvailablePool }) {
           </h3>
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex items-center gap-8">
           <div>
             <p className="text-xs text-black/40">Seats</p>
 
@@ -473,6 +565,25 @@ function PoolCard({ pool }: { pool: AvailablePool }) {
 
             <p className="mt-1 text-lg font-semibold">{pool.availableSeats}</p>
           </div>
+
+          <button
+            type="button"
+            onClick={onAccept}
+            disabled={disabled}
+            className="flex h-11 min-w-[135px] items-center justify-center gap-2 rounded-full bg-black px-5 text-sm font-bold text-white transition hover:bg-[#C6FF2E] hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {accepting ? (
+              <>
+                <LoaderCircle size={16} className="animate-spin" />
+                Accepting...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                Accept pool
+              </>
+            )}
+          </button>
         </div>
       </div>
 
