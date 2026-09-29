@@ -484,3 +484,99 @@ export async function updateActivePoolStatus(
     });
   });
 }
+
+// Get driver's completed and cancelled ride history
+
+export async function getDriverHistory(driverId: string) {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: {
+      driverId,
+    },
+
+    select: {
+      id: true,
+      name: true,
+      plateNumber: true,
+      capacity: true,
+    },
+  });
+
+  if (!vehicle) {
+    throw new Error("VEHICLE_NOT_FOUND");
+  }
+
+  const pools = await prisma.pool.findMany({
+    where: {
+      vehicleId: vehicle.id,
+    },
+
+    include: {
+      members: {
+        include: {
+          rideRequest: {
+            select: {
+              id: true,
+              pickup: true,
+              destination: true,
+              seats: true,
+              estimatedFarePoisha: true,
+              status: true,
+              paymentStatus: true,
+              passengerPaid: true,
+              driverReceived: true,
+              createdAt: true,
+              updatedAt: true,
+
+              passenger: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  return pools.flatMap((pool) =>
+    pool.members
+      .filter(
+        (member) =>
+          member.rideRequest.status === "COMPLETED" ||
+          member.rideRequest.status === "CANCELLED",
+      )
+      .map((member) => ({
+        id: member.rideRequest.id,
+
+        poolId: pool.id,
+        poolStatus: pool.status,
+
+        pickup: member.rideRequest.pickup,
+        destination: member.rideRequest.destination,
+
+        seats: member.rideRequest.seats,
+
+        estimatedFarePoisha: member.rideRequest.estimatedFarePoisha,
+        finalFarePoisha:
+          member.finalFarePoisha ?? member.rideRequest.estimatedFarePoisha,
+
+        status: member.rideRequest.status,
+
+        paymentStatus: member.rideRequest.paymentStatus,
+        passengerPaid: member.rideRequest.passengerPaid,
+        driverReceived: member.rideRequest.driverReceived,
+
+        passenger: member.rideRequest.passenger,
+
+        createdAt: member.rideRequest.createdAt,
+        updatedAt: member.rideRequest.updatedAt,
+      })),
+  );
+}
