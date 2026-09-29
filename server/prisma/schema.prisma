@@ -77,24 +77,35 @@ model RideRequest {
   id String @id @default(cuid())
 
   passengerId String
-  passenger   User   @relation(fields: [passengerId], references: [id])
 
+  passenger User @relation(fields: [passengerId], references: [id])
   pickup      DhakaZone
   destination DhakaZone
-  seats       Int
+
+  seats Int
 
   estimatedFarePoisha Int
 
   status RideStatus @default(REQUESTED)
 
-  poolMember    PoolMember?
+  paymentStatus PaymentStatus @default(PENDING)
+
+  passengerPaid Boolean @default(false)
+
+  driverReceived Boolean @default(false)
+
+  poolMember PoolMember?
+
   statusHistory RideStatusHistory[]
 
   createdAt DateTime @default(now())
+
   updatedAt DateTime @updatedAt
 
   @@index([passengerId])
+
   @@index([status])
+
   @@index([pickup, destination])
 }
 
@@ -146,3 +157,9 @@ model RideStatusHistory {
 
   @@index([rideRequestId, createdAt])
 }
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+}
+
