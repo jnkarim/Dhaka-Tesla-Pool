@@ -9,6 +9,7 @@ import {
   Minus,
   Plus,
   Users,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -16,6 +17,7 @@ import { api } from "@/lib/api";
 
 const RideMap = dynamic(() => import("@/components/RideMap"), {
   ssr: false,
+
   loading: () => (
     <div className="h-full min-h-[620px] w-full animate-pulse bg-black/[0.04]" />
   ),
@@ -45,30 +47,41 @@ type PaymentStatus = "PENDING" | "COMPLETED";
 
 type Ride = {
   id: string;
+
   pickup: DhakaZone;
+
   destination: DhakaZone;
+
   seats: number;
+
   status: RideStatus;
+
   estimatedFarePoisha: number;
 
   paymentStatus?: PaymentStatus;
+
   passengerPaid?: boolean;
+
   driverReceived?: boolean;
 };
 
 type CreateRideResponse = {
   success: boolean;
+
   data: Ride;
 };
 
 type CurrentRideResponse = {
   success: boolean;
+
   data: Ride | null;
 };
 
 const locations: {
   value: DhakaZone;
+
   label: string;
+
   coordinates: [number, number];
 }[] = [
   {
@@ -76,46 +89,55 @@ const locations: {
     label: "Khilgaon",
     coordinates: [23.7509, 90.4251],
   },
+
   {
     value: "BANANI",
     label: "Banani",
     coordinates: [23.7937, 90.4066],
   },
+
   {
     value: "GULSHAN_1",
     label: "Gulshan 1",
     coordinates: [23.7808, 90.4175],
   },
+
   {
     value: "GULSHAN_2",
     label: "Gulshan 2",
     coordinates: [23.7925, 90.4078],
   },
+
   {
     value: "MOHAKHALI",
     label: "Mohakhali",
     coordinates: [23.7788, 90.407],
   },
+
   {
     value: "FARMGATE",
     label: "Farmgate",
     coordinates: [23.7577, 90.3905],
   },
+
   {
     value: "DHANMONDI",
     label: "Dhanmondi",
     coordinates: [23.7465, 90.376],
   },
+
   {
     value: "MIRPUR",
     label: "Mirpur",
     coordinates: [23.8045, 90.3667],
   },
+
   {
     value: "UTTARA",
     label: "Uttara",
     coordinates: [23.8759, 90.3795],
   },
+
   {
     value: "BASHUNDHARA",
     label: "Bashundhara",
@@ -203,7 +225,11 @@ export default function PassengerPage() {
 
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   const [error, setError] = useState("");
+
+  const [cancelError, setCancelError] = useState("");
 
   const [currentRide, setCurrentRide] = useState<Ride | null>(null);
 
@@ -295,12 +321,37 @@ export default function PassengerPage() {
       });
 
       setCurrentRide(response.data);
+
+      setCancelError("");
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Could not request the ride.",
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function cancelCurrentRide() {
+    if (!currentRide || cancelLoading) {
+      return;
+    }
+
+    try {
+      setCancelError("");
+      setCancelLoading(true);
+
+      await api(`/rides/${currentRide.id}/cancel`, {
+        method: "PATCH",
+      });
+
+      setCurrentRide(null);
+    } catch (error) {
+      setCancelError(
+        error instanceof Error ? error.message : "Could not cancel the ride.",
+      );
+    } finally {
+      setCancelLoading(false);
     }
   }
 
@@ -424,7 +475,12 @@ export default function PassengerPage() {
                 </button>
               </>
             ) : (
-              <CurrentRide ride={currentRide} />
+              <CurrentRide
+                ride={currentRide}
+                cancelling={cancelLoading}
+                cancelError={cancelError}
+                onCancel={cancelCurrentRide}
+              />
             )}
           </section>
 
@@ -440,7 +496,19 @@ export default function PassengerPage() {
   );
 }
 
-function CurrentRide({ ride }: { ride: Ride }) {
+function CurrentRide({
+  ride,
+  cancelling,
+  cancelError,
+  onCancel,
+}: {
+  ride: Ride;
+  cancelling: boolean;
+  cancelError: string;
+  onCancel: () => void;
+}) {
+  const canCancel = ride.status === "REQUESTED";
+
   return (
     <div>
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#C6FF2E]">
@@ -502,6 +570,33 @@ function CurrentRide({ ride }: { ride: Ride }) {
       <p className="mt-4 text-sm leading-6 text-black/45">
         {getRideMessage(ride.status)}
       </p>
+
+      {cancelError && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {cancelError}
+        </div>
+      )}
+
+      {canCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={cancelling}
+          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cancelling ? (
+            <>
+              <LoaderCircle size={17} className="animate-spin" />
+              Cancelling...
+            </>
+          ) : (
+            <>
+              <XCircle size={17} />
+              Cancel ride
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -512,7 +607,9 @@ function SelectBox({
   setValue,
 }: {
   label: string;
+
   value: DhakaZone;
+
   setValue: (value: DhakaZone) => void;
 }) {
   return (
