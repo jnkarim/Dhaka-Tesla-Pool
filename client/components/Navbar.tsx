@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { ChevronDown, LoaderCircle, LogOut } from "lucide-react";
+import { LoaderCircle, LogOut, Menu, X } from "lucide-react";
 
 import { api } from "@/lib/api";
 
+import { Montserrat } from "next/font/google";
+
+const logoFont = Montserrat({
+  subsets: ["latin"],
+  weight: ["800", "900"],
+});
 type Role = "PASSENGER" | "DRIVER";
 
 type MeResponse = {
@@ -22,8 +28,6 @@ type MeResponse = {
 export default function Navbar() {
   const pathname = usePathname();
 
-  const [signupOpen, setSignupOpen] = useState(false);
-
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [role, setRole] = useState<Role | null>(null);
@@ -32,13 +36,26 @@ export default function Navbar() {
 
   const [logoutLoading, setLogoutLoading] = useState(false);
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const hasCheckedAuth = useRef(false);
+
+  const previousPathname = useRef(pathname);
+
   useEffect(() => {
     let cancelled = false;
 
     async function checkAuth() {
-      try {
-        setAuthLoading(true);
+      const previousPath = previousPathname.current;
 
+      const leavingAuthPage =
+        previousPath === "/login" || previousPath === "/register";
+
+      if (!hasCheckedAuth.current || leavingAuthPage) {
+        setAuthLoading(true);
+      }
+
+      try {
         const response = await api<MeResponse>("/auth/me");
 
         if (cancelled) {
@@ -64,7 +81,11 @@ export default function Navbar() {
         setRole(null);
       } finally {
         if (!cancelled) {
+          hasCheckedAuth.current = true;
+
           setAuthLoading(false);
+
+          previousPathname.current = pathname;
         }
       }
     }
@@ -76,19 +97,25 @@ export default function Navbar() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   async function handleLogout() {
+    if (logoutLoading) {
+      return;
+    }
+
     try {
       setLogoutLoading(true);
+
+      setMobileOpen(false);
 
       await api("/auth/logout", {
         method: "POST",
       });
 
-      setIsLoggedIn(false);
-
-      setRole(null);
-
-      window.location.href = "/login";
+      window.location.replace("/login");
     } catch (error) {
       console.error("Logout failed", error);
 
@@ -100,16 +127,18 @@ export default function Navbar() {
     return null;
   }
 
-  const isDriver = role === "DRIVER";
+  const navigationLoading = authLoading || logoutLoading;
 
   return (
-    <header className="w-full border-b border-black/10 bg-white">
-      <nav className="mx-auto flex h-[100px] max-w-[1540px] items-stretch px-6 lg:px-10">
+    <header className="relative z-50 w-full border-b border-black/10 bg-white">
+      <nav className="flex h-[100px] w-full items-stretch">
         {/* Logo */}
 
-        <div className="flex min-w-[260px] items-center border-r border-black/10 pr-8">
-          <Link href="/">
-            <span className="text-[26px] font-black tracking-[-0.04em] text-black">
+        <div className="flex shrink-0 items-center justify-center bg-black px-8 lg:w-[400px]">
+          <Link href="/" onClick={() => setMobileOpen(false)} className="group">
+            <span
+              className={`${logoFont.className} whitespace-nowrap text-[24px] font-black tracking-[-0.065em] text-white transition-transform duration-200 group-hover:scale-[1.02] lg:text-[29px]`}
+            >
               Dhaka
               <span className="text-[#C6FF2E]">Tesla</span>
               Pool
@@ -120,157 +149,212 @@ export default function Navbar() {
         {/* Desktop */}
 
         <div className="hidden flex-1 items-stretch justify-end lg:flex">
-          {authLoading ? (
-            <DesktopAuthLoading />
+          {navigationLoading ? (
+            <DesktopAuthLoading loggingOut={logoutLoading} />
+          ) : !isLoggedIn ? (
+            <GuestDesktopNavigation />
+          ) : role === "PASSENGER" ? (
+            <PassengerDesktopNavigation onLogout={handleLogout} />
           ) : (
-            <>
-              {/* Passenger navigation */}
-
-              {!isDriver && (
-                <div className="flex items-center border-r border-black/10 px-8">
-                  <Link
-                    href="/passenger"
-                    className="rounded-full bg-[#C6FF2E] px-8 py-4 text-[17px] font-bold text-black transition hover:scale-[1.02]"
-                  >
-                    Get a ride
-                  </Link>
-                </div>
-              )}
-
-              {!isDriver && (
-                <NavItem href="/passenger/activity">Activity</NavItem>
-              )}
-
-              {/* Driver navigation */}
-
-              {(!isLoggedIn || role === "DRIVER") && (
-                <NavItem href="/driver">Driver</NavItem>
-              )}
-
-              <NavItem href="/#how-it-works">How it works</NavItem>
-
-              {/* Guest */}
-
-              {!isLoggedIn && (
-                <>
-                  <NavItem href="/login">Log in</NavItem>
-
-                  <div className="relative flex items-stretch border-r border-black/10">
-                    <button
-                      type="button"
-                      onClick={() => setSignupOpen((previous) => !previous)}
-                      className="flex items-center gap-2 px-8 text-[17px] font-bold text-black transition hover:bg-black hover:text-white"
-                    >
-                      Sign up
-                      <ChevronDown
-                        size={17}
-                        className={`transition-transform ${
-                          signupOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {signupOpen && (
-                      <div className="absolute right-0 top-full z-50 min-w-[245px] border border-black/10 bg-white shadow-xl">
-                        <Link
-                          href="/register"
-                          onClick={() => setSignupOpen(false)}
-                          className="block px-8 py-5 text-[17px] hover:bg-[#C6FF2E]"
-                        >
-                          Sign up to ride
-                        </Link>
-
-                        <Link
-                          href="/register?role=driver"
-                          onClick={() => setSignupOpen(false)}
-                          className="block border-t border-black/10 px-8 py-5 text-[17px] hover:bg-[#C6FF2E]"
-                        >
-                          Apply to drive
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Logged in */}
-
-              {isLoggedIn && (
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={logoutLoading}
-                  className="flex items-center gap-2 border-r border-black/10 px-8 text-[17px] font-bold text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {logoutLoading ? (
-                    <LoaderCircle size={18} className="animate-spin" />
-                  ) : (
-                    <LogOut size={18} />
-                  )}
-
-                  {logoutLoading ? "Logging out..." : "Logout"}
-                </button>
-              )}
-            </>
+            <DriverDesktopNavigation onLogout={handleLogout} />
           )}
         </div>
 
-        {/* Mobile */}
+        {/* Mobile button */}
 
-        <div className="ml-auto flex items-center gap-3 lg:hidden">
-          {authLoading ? (
-            <LoaderCircle size={20} className="animate-spin text-black/50" />
-          ) : !isLoggedIn ? (
-            <>
-              <Link href="/login" className="text-sm font-bold">
-                Log in
-              </Link>
+        <div className="ml-auto flex items-center pr-6 lg:hidden">
+          {navigationLoading ? (
+            <div className="flex items-center gap-2 text-sm font-semibold text-black/45">
+              <LoaderCircle size={19} className="animate-spin" />
 
-              <Link
-                href="/register"
-                className="rounded-full bg-[#C6FF2E] px-5 py-3 text-sm font-black"
-              >
-                Sign up
-              </Link>
-            </>
+              {logoutLoading && "Logging out..."}
+            </div>
           ) : (
             <button
               type="button"
-              onClick={handleLogout}
-              disabled={logoutLoading}
-              className="flex items-center gap-2 text-sm font-bold disabled:opacity-50"
+              onClick={() => setMobileOpen((current) => !current)}
+              aria-label="Toggle navigation menu"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-white transition hover:bg-[#C6FF2E] hover:text-black"
             >
-              {logoutLoading ? (
-                <LoaderCircle size={16} className="animate-spin" />
+              {mobileOpen ? (
+                <X size={20} strokeWidth={2.4} />
               ) : (
-                <LogOut size={16} />
+                <Menu size={20} strokeWidth={2.4} />
               )}
-
-              {logoutLoading ? "Logging out..." : "Logout"}
             </button>
           )}
         </div>
       </nav>
+
+      {/* Mobile navigation */}
+
+      {mobileOpen && !navigationLoading && (
+        <MobileNavigation
+          isLoggedIn={isLoggedIn}
+          role={role}
+          onLogout={handleLogout}
+        />
+      )}
     </header>
   );
 }
 
-function DesktopAuthLoading() {
+function GuestDesktopNavigation() {
   return (
-    <div className="flex flex-1 items-center justify-end border-r border-black/10 px-8">
-      <LoaderCircle size={21} className="animate-spin text-black/40" />
+    <>
+      <NavItem href="/#how-it-works">How it works</NavItem>
+
+      <NavItem href="/register?role=driver">Driver</NavItem>
+
+      <NavItem href="/login">Log in</NavItem>
+
+      <div className="flex items-center px-8">
+        <Link
+          href="/register"
+          className="rounded-full bg-[#C6FF2E] px-8 py-4 text-[17px] font-bold text-black transition hover:scale-[1.02]"
+        >
+          Sign up
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function PassengerDesktopNavigation({ onLogout }: { onLogout: () => void }) {
+  return (
+    <>
+      <div className="flex items-center border-r border-black/10 px-8">
+        <Link
+          href="/passenger"
+          className="rounded-full bg-[#C6FF2E] px-8 py-4 text-[17px] font-bold text-black transition hover:scale-[1.02]"
+        >
+          Get a ride
+        </Link>
+      </div>
+
+      <NavItem href="/passenger/activity">Activity</NavItem>
+
+      <NavItem href="/#how-it-works">How it works</NavItem>
+
+      <LogoutButton onLogout={onLogout} />
+    </>
+  );
+}
+
+function DriverDesktopNavigation({ onLogout }: { onLogout: () => void }) {
+  return (
+    <>
+      <NavItem href="/driver">Driver</NavItem>
+
+      <NavItem href="/#how-it-works">How it works</NavItem>
+
+      <LogoutButton onLogout={onLogout} />
+    </>
+  );
+}
+
+function LogoutButton({ onLogout }: { onLogout: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onLogout}
+      className="flex items-center gap-2 border-l border-black/10 px-8 text-[17px] font-bold text-black transition hover:bg-black hover:text-white"
+    >
+      <LogOut size={18} />
+      Logout
+    </button>
+  );
+}
+
+function DesktopAuthLoading({ loggingOut }: { loggingOut: boolean }) {
+  return (
+    <div className="flex flex-1 items-center justify-end px-8">
+      <div className="flex items-center gap-2 text-sm font-semibold text-black/45">
+        <LoaderCircle size={20} className="animate-spin" />
+
+        {loggingOut && "Logging out..."}
+      </div>
     </div>
+  );
+}
+
+function MobileNavigation({
+  isLoggedIn,
+  role,
+  onLogout,
+}: {
+  isLoggedIn: boolean;
+  role: Role | null;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="absolute left-0 top-full w-full border-t border-black/10 bg-white shadow-xl lg:hidden">
+      <div className="px-6 py-5">
+        {!isLoggedIn ? (
+          <div className="flex flex-col">
+            <MobileNavItem href="/#how-it-works">How it works</MobileNavItem>
+
+            <MobileNavItem href="/register?role=driver">Driver</MobileNavItem>
+
+            <MobileNavItem href="/login">Log in</MobileNavItem>
+
+            <Link
+              href="/register"
+              className="mt-4 flex h-12 items-center justify-center rounded-xl bg-[#C6FF2E] text-sm font-black text-black"
+            >
+              Sign up
+            </Link>
+          </div>
+        ) : role === "PASSENGER" ? (
+          <div className="flex flex-col">
+            <Link
+              href="/passenger"
+              className="mb-3 flex h-12 items-center justify-center rounded-xl bg-[#C6FF2E] text-sm font-black text-black"
+            >
+              Get a ride
+            </Link>
+
+            <MobileNavItem href="/passenger/activity">Activity</MobileNavItem>
+
+            <MobileNavItem href="/#how-it-works">How it works</MobileNavItem>
+
+            <MobileLogoutButton onLogout={onLogout} />
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <MobileNavItem href="/driver">Driver</MobileNavItem>
+
+            <MobileNavItem href="/#how-it-works">How it works</MobileNavItem>
+
+            <MobileLogoutButton onLogout={onLogout} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileLogoutButton({ onLogout }: { onLogout: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onLogout}
+      className="flex min-h-12 items-center gap-3 border-t border-black/10 py-4 text-left text-sm font-bold text-black"
+    >
+      <LogOut size={17} />
+      Logout
+    </button>
   );
 }
 
 type NavItemProps = {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 function NavItem({ href, children }: NavItemProps) {
   return (
-    <div className="flex items-stretch border-r border-black/10">
+    <div className="flex items-stretch border-l border-black/10">
       <Link
         href={href}
         className="flex items-center px-8 text-[17px] font-bold text-black transition hover:bg-black hover:text-white"
@@ -278,5 +362,16 @@ function NavItem({ href, children }: NavItemProps) {
         {children}
       </Link>
     </div>
+  );
+}
+
+function MobileNavItem({ href, children }: NavItemProps) {
+  return (
+    <Link
+      href={href}
+      className="flex min-h-12 items-center border-b border-black/10 py-4 text-sm font-bold text-black"
+    >
+      {children}
+    </Link>
   );
 }
