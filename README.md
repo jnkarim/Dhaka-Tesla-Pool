@@ -29,7 +29,6 @@
 
 **Dhaka Tesla Pool is a ride-pooling MVP where passengers travelling in compatible directions can share a three-seat Dhaka “Tesla”, while each passenger keeps their own fare, ride status and payment state.**
 
-[GitHub Repository](https://github.com/jnkarim/Dhaka-Tesla-Pool)
 
 </div>
 
@@ -96,7 +95,7 @@ The important product rules are:
 
 ---
 
-# ✦ 3. Your Mission: Build the MVP
+# ✦ 3. The MVP
 
 The MVP is built around three main actors.
 
@@ -223,7 +222,7 @@ This keeps the implementation easy to explain while still demonstrating the impo
 
 ---
 
-# ✦ 5. Fare Model - Keep It Understandable
+# ✦ 5. Fare Model
 
 Money is stored as **integer poisha** rather than floating-point Taka values.
 
@@ -336,7 +335,7 @@ This makes payment state explicit without introducing a real payment gateway.
 
 ---
 
-# ✦ 7. Technology Choice & Justification
+# ✦ 7. Technology
 
 ## PostgreSQL
 
@@ -477,7 +476,7 @@ All generated or suggested code was reviewed, changed where necessary, and integ
 
 ---
 
-# ✦ 9. Architecture First
+# ✦ 9. Architecture
 
 The application follows a simple modular-monolith architecture.
 
