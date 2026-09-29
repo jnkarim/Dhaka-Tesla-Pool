@@ -4,6 +4,13 @@ import type { AuthenticatedRequest } from "../../middleware/authenticate.js";
 
 import { loginUser, registerUser } from "./auth.service.js";
 
+function isValidEmail(email: string) {
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/;
+
+  return emailRegex.test(email);
+}
+
 // Register
 
 export const register = async (req: Request, res: Response) => {
@@ -17,6 +24,15 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
     if (role !== "PASSENGER" && role !== "DRIVER") {
       return res.status(400).json({
         success: false,
@@ -26,7 +42,7 @@ export const register = async (req: Request, res: Response) => {
 
     const user = await registerUser({
       name,
-      email,
+      email: normalizedEmail,
       password,
       role,
     });
@@ -70,8 +86,17 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
     const result = await loginUser({
-      email,
+      email: normalizedEmail,
       password,
     });
 
@@ -83,6 +108,8 @@ export const login = async (req: Request, res: Response) => {
       secure: isProduction,
 
       sameSite: isProduction ? ("none" as const) : ("lax" as const),
+
+      path: "/",
 
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -140,6 +167,8 @@ export const logout = (req: Request, res: Response) => {
     secure: isProduction,
 
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
+
+    path: "/",
   });
 
   return res.status(200).json({
