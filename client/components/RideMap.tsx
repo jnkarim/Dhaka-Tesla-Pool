@@ -14,19 +14,12 @@ import L from "leaflet";
 
 import { useEffect } from "react";
 
-
-type Coordinate = [
-  number,
-  number
-];
-
+type Coordinate = [number, number];
 
 type Props = {
   pickup: Coordinate | null;
   destination: Coordinate | null;
 };
-
-
 
 const markerIcon = L.divIcon({
   className: "",
@@ -45,144 +38,58 @@ const markerIcon = L.divIcon({
   `,
 });
 
-
-
-function MapUpdater({
-  pickup,
-  destination,
-}: Props) {
-
+function MapUpdater({ pickup, destination }: Props) {
   const map = useMap();
 
-
   useEffect(() => {
+    const points = [pickup, destination].filter(Boolean) as Coordinate[];
 
-    const points =
-      [
-        pickup,
-        destination,
-      ].filter(Boolean) as Coordinate[];
-
-
-    if(points.length === 2){
-
-      map.fitBounds(
-        points,
-        {
-          padding:[
-            70,
-            70,
-          ],
-        },
-      );
-
+    if (points.length === 2) {
+      map.fitBounds(points, {
+        padding: [70, 70],
+      });
     }
-
-
-  },[
-    pickup,
-    destination,
-    map,
-  ]);
-
+  }, [pickup, destination, map]);
 
   return null;
 }
 
-
-
-
-
-export default function RideMap({
-  pickup,
-  destination,
-}: Props){
-
-
+export default function RideMap({ pickup, destination }: Props) {
   return (
-
     <div
       className="
         h-full
         w-full
       "
     >
-
       <MapContainer
-
-        center={[
-          23.8103,
-          90.4125,
-        ]}
-
+        center={[23.8103, 90.4125]}
         zoom={13}
-
         className="
           h-full
           w-full
         "
-
       >
-
         <TileLayer
           url="
           https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
           "
         />
 
+        <MapUpdater pickup={pickup} destination={destination} />
 
-        <MapUpdater
-          pickup={pickup}
-          destination={destination}
-        />
+        {pickup && <Marker position={pickup} icon={markerIcon} />}
 
-
-
-        {pickup && (
-
-          <Marker
-            position={pickup}
-            icon={markerIcon}
-          />
-
-        )}
-
-
-
-        {destination && (
-
-          <Marker
-            position={destination}
-            icon={markerIcon}
-          />
-
-        )}
-
-
+        {destination && <Marker position={destination} icon={markerIcon} />}
 
         {pickup && destination && (
-
           <Polyline
-
-            positions={[
-              pickup,
-              destination,
-            ]}
-
+            positions={[pickup, destination]}
             color="#C6FF2E"
-
             weight={6}
-
           />
-
         )}
-
-
       </MapContainer>
-
-
     </div>
-
   );
-
 }
