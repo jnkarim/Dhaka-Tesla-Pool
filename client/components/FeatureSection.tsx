@@ -107,11 +107,7 @@ export default function FeatureSection() {
             <div className="relative z-10 flex min-h-[330px] max-w-[62%] flex-col justify-between p-8">
               <div>
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-black text-[#C6FF2E]">
-                  <Navigation
-                    size={22}
-                    strokeWidth={2.3}
-                    fill="currentColor"
-                  />
+                  <Navigation size={22} strokeWidth={2.3} fill="currentColor" />
                 </div>
 
                 <h3 className="text-[30px] font-black tracking-[-0.035em]">
@@ -169,8 +165,7 @@ export default function FeatureSection() {
             </div>
 
             <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-bold">
-              <Users size={17} />
-              3 seats max
+              <Users size={17} />3 seats max
             </div>
 
             <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm font-bold">

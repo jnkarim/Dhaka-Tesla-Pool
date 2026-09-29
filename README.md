@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚲 Dhaka Tesla Pool
+# Dhaka Tesla Pool
 
 ### Share a seat. Split the fare. Survive Dhaka traffic.
 
@@ -100,7 +100,7 @@ The important product rules are:
 
 The MVP is built around three main actors.
 
-## 👤 Passenger
+## Passenger
 
 Passengers can:
 
@@ -117,7 +117,7 @@ Passengers can:
 
 ---
 
-## 🚲 Driver / Tesla
+## Driver / Tesla
 
 Drivers can:
 
@@ -135,7 +135,7 @@ Drivers can:
 
 ---
 
-## 🔀 Pool / Ride Split
+## Pool / Ride Split
 
 The pooling system provides:
 
@@ -148,7 +148,7 @@ The pooling system provides:
 
 ---
 
-## 🛡️ Admin Extension
+##  Admin Extension
 
 A small read-only admin extension is also included.
 
@@ -323,7 +323,6 @@ This makes payment state explicit without introducing a real payment gateway.
 | --- | --- |
 | PostgreSQL | Relational database |
 | Prisma | ORM, migrations and typed database access |
-| Prisma PostgreSQL Adapter | PostgreSQL connection adapter |
 
 ---
 
@@ -439,30 +438,42 @@ A mature design system with many shared products could justify a dedicated inter
 
 # ✦ 8. AI Usage Policy
 
- AI tools were used as a frontend development assistant during the project.
+AI tools were used as an engineering assistant during development.
 
-### Where AI helped
+## Tools used
 
-- Exploring frontend UI/UX ideas and improving the landing page design.
-- Reviewing React component structure and suggesting cleaner reusable patterns.
-- Helping improve responsive layouts and styling consistency.
-- Assisting with debugging frontend issues and improving user experience.
-- Helping organize project documentation and README structure.
+```text
+ChatGPT
+Documentation
+Search / Stack Overflow style references where needed
+```
 
-### Accepted AI suggestions
+## What AI was used for
 
-- Improving component organization for better maintainability.
-- Refining responsive layouts for different screen sizes.
-- Enhancing UI consistency using the existing black, white, and lime color system.
+- assisting with frontend design exploration and UI improvements
+- suggesting responsive layout and styling improvements
+- helping debug frontend implementation issues
+- reviewing component organization and maintainability
+- improving documentation structure and presentation
 
-### Rejected or modified AI suggestions
+## One accepted suggestion
 
-- Avoided adding unnecessary UI complexity that did not match the product requirements.
-- Modified suggested designs to fit Dhaka Tesla Pool's own branding and user flow.
+The cash flow was modelled with **two independent confirmations**:
 
-### Ownership
+```text
+passengerPaid
+driverReceived
+```
 
-All AI suggestions were reviewed and modified where necessary. The final frontend implementation, design decisions, and user experience choices were made by the developer.
+and payment becomes complete only when both are true. This made the cash state explicit and testable.
+
+## One rejected / changed suggestion
+
+During the initial design iteration, live GPS tracking was considered for providing real-time vehicle movement updates. However, it would increase system complexity and require additional infrastructure for location streaming. The final implementation uses predefined Dhaka zones for pickup and destination selection, keeping the MVP focused while maintaining a reliable ride matching flow.
+
+## Ownership
+
+All generated or suggested code was reviewed, changed where necessary, and integrated into the final architecture. The goal was not to minimize AI usage, but to understand and be able to explain the shipped implementation.
 
 ---
 
@@ -547,10 +558,10 @@ RideRequest 1 ──── many RideStatusHistory
 ERD image:
 
 ```markdown
-![Dhaka Tesla Pool ERD](docs/dhaka_tesla_pool_erd_final.png)
+![Dhaka Tesla Pool ERD](docs/dhaka_tesla_pool_erd.png)
 ```
 
-![Dhaka Tesla Pool ERD](docs/dhaka_tesla_pool_erd_final.png)
+![Dhaka Tesla Pool ERD](docs/dhaka_tesla_pool_erd.png)
 
 Editable source:
 
@@ -558,6 +569,15 @@ Editable source:
 docs/dhaka_tesla_pool_erd_final.drawio
 ```
 
+# Bonus: Scaling Architecture
+
+## Scaling Dhaka Tesla Pool to 1M Passengers and 100K Drivers
+
+The current MVP architecture is designed for a smaller user base. If Dhaka Tesla Pool grows to support 1M passengers and 100K drivers, the system can gradually scale by introducing distributed components while keeping the core ride flow reliable.
+
+## High Level Scaling Architecture
+
+![Dhaka Tesla Pool Scaling Architecture](docs/dhaka_tesla_pool_scaling_architecture.png)
 ---
 
 # ✦ Project Structure
@@ -1085,114 +1105,38 @@ video / deployment version
 Avoid developing the entire project directly on the main long-lived branch.
 
 
-# ✦ 11. README, Testing, Concurrency & Bonus
 
-This README documents:
-
-- project summary and problem statement
-- implemented features
-- architecture
-- ERD
-- tech stack and project structure
-- environment variables
-- local setup
-- Docker setup
-- migrations and seed flow
-- frontend/backend run instructions
-- API overview
-- engineering decisions and trade-offs
-- concurrency handling
-- testing priorities
-- known limitations
-- future improvements
-- AI usage
-- demo video section
 
 ---
-
-
 
 # ✦ Deployment
 
 The assignment requires free or free-tier deployment only.
 
 ```text
-Frontend URL
-→ TODO
+Frontend URL:
+https://dhaka-tesla-pool-dun.vercel.app/
 
 Backend URL
-→ TODO
+https://dhaka-tesla-pool-2z2h.onrender.com/api/v1/health
 ```
 
-If a free backend deployment is not available, document that constraint and provide the reproducible Docker setup instead.
+The backend is deployed using Render's free tier.
+Since the backend uses Render's free instance, the service may enter an idle state after a period of inactivity. The first request after inactivity may experience a cold start delay while the server instance becomes active again.
 
 ---
 
 
 
-# ✦ 12. Assumptions
+# ✦ 13. Six-Minute Final Video
 
-Some parts of the assignment are intentionally open-ended.
-
-Current MVP assumptions include:
+Final video link:
 
 ```text
-Geography
-→ predefined Dhaka zones
-
-Matching
-→ simple compatible-zone rules
-
-Capacity
-→ fixed at 3 seats
-
-Payment
-→ cash only
-
-Routing
-→ no real road optimization
-
-Admin
-→ one configured email, read-only transaction access
+TODO: Add Loom / video URL
 ```
 
-The important principle is that an assumption should be:
 
-```text
-reasonable
-+
-documented
-+
-implemented consistently
-+
-explainable
-```
-
----
-
-# ✦ 18. Why the Details Matter
-
-The project keeps the original story and domain visible throughout the implementation.
-
-That means the evaluator should be able to trace the same concepts through:
-
-```text
-README
-   ↓
-Seed Data
-   ↓
-Database
-   ↓
-API
-   ↓
-Frontend
-   ↓
-Tests
-   ↓
-Demo Video
-```
-
-The goal is not only to produce a working UI, but to show a coherent engineering journey from problem understanding to implementation.
 
 ---
 
@@ -1232,7 +1176,7 @@ Potential improvements include:
 
 ### Payments
 
-- digital wallet / TeslaPay simulation
+- digital wallet
 - payment receipts
 - refund states
 
@@ -1279,6 +1223,3 @@ Change
 And in Dhaka, the Tesla may have three wheels - but the engineering should still be production-minded.
 
 ---
-
-
-</div>
