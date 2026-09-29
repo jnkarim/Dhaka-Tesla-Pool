@@ -10,14 +10,14 @@
         <mxCell id="vehicle" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;Vehicle&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;name : String&lt;br&gt;UQ plateNumber : String&lt;br&gt;capacity : Int&lt;br&gt;isOnline : Boolean&lt;br&gt;FK/UQ driverId -&gt; User.id" vertex="1">
           <mxGeometry height="190" width="280" x="70" y="330" as="geometry" />
         </mxCell>
-        <mxCell id="ride" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;RideRequest&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK passengerId -&gt; User.id&lt;br&gt;pickup : DhakaZone&lt;br&gt;destination : DhakaZone&lt;br&gt;seats : Int&lt;br&gt;estimatedFarePoisha : Int&lt;br&gt;status : RideStatus" vertex="1">
-          <mxGeometry height="220" width="300" x="430" y="330" as="geometry" />
+        <mxCell id="ride" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;RideRequest&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK passengerId -&amp;gt; User.id&lt;br&gt;pickup : DhakaZone&lt;br&gt;destination : DhakaZone&lt;br&gt;seats : Int&lt;br&gt;estimatedFarePoisha : Int&lt;br&gt;status : RideStatus&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;paymentStatus : PaymentStatus&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;passengerPaid : Boolean&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;driverReceived : Boolean&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;createdAt : DateTime&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;updatedAt : DateTime&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="280" width="290" x="430" y="330" as="geometry" />
         </mxCell>
         <mxCell id="pool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;Pool&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK vehicleId -&gt; Vehicle.id&lt;br&gt;status : PoolStatus&lt;br&gt;createdAt : DateTime&lt;br&gt;updatedAt : DateTime" vertex="1">
-          <mxGeometry height="170" width="280" x="70" y="650" as="geometry" />
+          <mxGeometry height="170" width="280" x="70" y="700" as="geometry" />
         </mxCell>
         <mxCell id="member" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;PoolMember&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK poolId -&gt; Pool.id&lt;br&gt;FK/UQ rideRequestId -&gt; RideRequest.id&lt;br&gt;seatsReserved : Int&lt;br&gt;finalFarePoisha : Int?&lt;br&gt;joinedAt : DateTime" vertex="1">
-          <mxGeometry height="200" width="300" x="470" y="640" as="geometry" />
+          <mxGeometry height="200" width="300" x="425" y="690" as="geometry" />
         </mxCell>
         <mxCell id="history" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=14;" value="&lt;b&gt;RideStatusHistory&lt;/b&gt;&lt;hr&gt;PK id : String&lt;br&gt;FK rideRequestId -&gt; RideRequest.id&lt;br&gt;status : RideStatus&lt;br&gt;createdAt : DateTime" vertex="1">
           <mxGeometry height="160" width="300" x="820" y="360" as="geometry" />
