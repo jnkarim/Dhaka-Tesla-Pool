@@ -2,7 +2,12 @@ import type { Response } from "express";
 
 import type { AuthenticatedRequest } from "../../middleware/authenticate.js";
 
-import { acceptPool, getAvailablePools } from "./driver.service.js";
+import {
+  acceptPool,
+  getActivePool,
+  getAvailablePools,
+  updateActivePoolStatus,
+} from "./driver.service.js";
 
 // Get available pools
 
@@ -45,6 +50,50 @@ export async function availablePoolsController(
       return res.status(409).json({
         success: false,
         message: "Go online to view available pools",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+}
+
+// Get current active pool
+
+export async function activePoolController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (req.user.role !== "DRIVER") {
+      return res.status(403).json({
+        success: false,
+        message: "Driver access only",
+      });
+    }
+
+    const pool = await getActivePool(req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: pool,
+    });
+  } catch (error) {
+    const message = (error as Error).message;
+
+    if (message === "VEHICLE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found for this driver",
       });
     }
 
@@ -139,6 +188,59 @@ export async function acceptPoolController(
     return res.status(500).json({
       success: false,
       message: "Internal server error",
+    });
+  }
+}
+
+export async function updateActivePoolStatusController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { status } = req.body;
+
+    const allowedStatuses = ["DRIVER_ARRIVED", "STARTED", "COMPLETED"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pool status",
+      });
+    }
+
+    const pool = await updateActivePoolStatus(req.user.userId, status);
+
+    return res.status(200).json({
+      success: true,
+      data: pool,
+    });
+  } catch (error) {
+    const message = (error as Error).message;
+
+    if (message === "ACTIVE_POOL_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Active pool not found",
+      });
+    }
+
+    if (message === "INVALID_POOL_TRANSITION") {
+      return res.status(409).json({
+        success: false,
+        message: "Invalid ride lifecycle transition",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message,
     });
   }
 }

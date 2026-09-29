@@ -10,7 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { api } from "@/lib/api";
 
@@ -32,25 +32,15 @@ type PaymentStatus = "PENDING" | "COMPLETED";
 
 type RideHistoryItem = {
   id: string;
-
   pickup: DhakaZone;
-
   destination: DhakaZone;
-
   seats: number;
-
   estimatedFarePoisha: number;
-
   status: RideStatus;
-
   paymentStatus: PaymentStatus;
-
   passengerPaid: boolean;
-
   driverReceived: boolean;
-
   createdAt: string;
-
   updatedAt: string;
 
   poolMember: {
@@ -71,7 +61,6 @@ type RideHistoryItem = {
 
 type HistoryResponse = {
   success: boolean;
-
   data: RideHistoryItem[];
 };
 
@@ -100,6 +89,26 @@ function formatDate(date: string) {
 
 function formatFare(poisha: number) {
   return `৳${(poisha / 100).toFixed(0)}`;
+}
+
+function getPaymentLabel(ride: RideHistoryItem) {
+  if (ride.status === "CANCELLED") {
+    return "Not applicable";
+  }
+
+  if (ride.paymentStatus === "COMPLETED") {
+    return "Cash completed";
+  }
+
+  if (ride.passengerPaid && !ride.driverReceived) {
+    return "Waiting for driver";
+  }
+
+  if (!ride.passengerPaid && ride.driverReceived) {
+    return "Waiting for passenger";
+  }
+
+  return "Cash pending";
 }
 
 export default function ActivityPage() {
@@ -172,8 +181,8 @@ export default function ActivityPage() {
 
         {!loading && !error && rides.length > 0 && (
           <div className="mt-8 space-y-4">
-            {rides.map((ride) => (
-              <RideCard key={ride.id} ride={ride} />
+            {rides.map((ride, index) => (
+              <RideCard key={ride.id} ride={ride} number={index + 1} />
             ))}
           </div>
         )}
@@ -182,7 +191,7 @@ export default function ActivityPage() {
   );
 }
 
-function RideCard({ ride }: { ride: RideHistoryItem }) {
+function RideCard({ ride, number }: { ride: RideHistoryItem; number: number }) {
   const completed = ride.status === "COMPLETED";
 
   const fare = ride.poolMember?.finalFarePoisha ?? ride.estimatedFarePoisha;
@@ -198,16 +207,26 @@ function RideCard({ ride }: { ride: RideHistoryItem }) {
               completed ? "bg-[#C6FF2E]" : "bg-black/[0.06]"
             }`}
           >
-            {completed ? <CircleCheck size={21} /> : <CircleX size={21} />}
+            {completed ? (
+              <CircleCheck size={21} />
+            ) : (
+              <CircleX size={21} className="text-red-600" />
+            )}
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-lg font-semibold">
-                {zoneLabels[ride.pickup]}
-                {" → "}
-                {zoneLabels[ride.destination]}
-              </h2>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-black/35">
+                  {number}.
+                </span>
+
+                <h2 className="text-lg font-semibold">
+                  {zoneLabels[ride.pickup]}
+                  {" → "}
+                  {zoneLabels[ride.destination]}
+                </h2>
+              </div>
 
               <span
                 className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${
@@ -249,13 +268,7 @@ function RideCard({ ride }: { ride: RideHistoryItem }) {
         <Detail
           icon={<ReceiptText size={16} />}
           label="Payment"
-          value={
-            ride.status === "CANCELLED"
-              ? "Not applicable"
-              : ride.paymentStatus === "COMPLETED"
-                ? "Cash completed"
-                : "Cash pending"
-          }
+          value={getPaymentLabel(ride)}
         />
 
         <Detail
@@ -279,7 +292,7 @@ function Detail({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
 }) {

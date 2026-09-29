@@ -110,6 +110,116 @@ export async function getAvailablePools(driverId: string) {
     );
 }
 
+// Get driver's current active pool
+
+export async function getActivePool(driverId: string) {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: {
+      driverId,
+    },
+
+    select: {
+      id: true,
+      name: true,
+      plateNumber: true,
+      capacity: true,
+      isOnline: true,
+    },
+  });
+
+  if (!vehicle) {
+    throw new Error("VEHICLE_NOT_FOUND");
+  }
+
+  const pool = await prisma.pool.findFirst({
+    where: {
+      vehicleId: vehicle.id,
+
+      OR: [
+        {
+          status: {
+            in: ["ACCEPTED", "DRIVER_ARRIVED", "STARTED"],
+          },
+        },
+
+        {
+          status: "COMPLETED",
+
+          members: {
+            some: {
+              rideRequest: {
+                driverReceived: false,
+              },
+            },
+          },
+        },
+      ],
+    },
+
+    include: {
+      members: {
+        include: {
+          rideRequest: {
+            select: {
+              id: true,
+              pickup: true,
+              destination: true,
+              seats: true,
+              estimatedFarePoisha: true,
+              status: true,
+              paymentStatus: true,
+              passengerPaid: true,
+              driverReceived: true,
+              createdAt: true,
+
+              passenger: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  if (!pool) {
+    return null;
+  }
+
+  const occupiedSeats = pool.members.reduce(
+    (total, member) => total + member.seatsReserved,
+    0,
+  );
+
+  return {
+    id: pool.id,
+    status: pool.status,
+    createdAt: pool.createdAt,
+    updatedAt: pool.updatedAt,
+
+    vehicle,
+
+    capacity: vehicle.capacity,
+    occupiedSeats,
+    availableSeats: vehicle.capacity - occupiedSeats,
+
+    members: pool.members.map((member) => ({
+      id: member.id,
+      seatsReserved: member.seatsReserved,
+      finalFarePoisha: member.finalFarePoisha,
+      joinedAt: member.joinedAt,
+      ride: member.rideRequest,
+    })),
+  };
+}
+
 // Accept an available pool
 
 export async function acceptPool(driverId: string, poolId: string) {
@@ -218,6 +328,7 @@ export async function acceptPool(driverId: string, poolId: string) {
     await tx.rideStatusHistory.createMany({
       data: rideIds.map((rideRequestId) => ({
         rideRequestId,
+
         status: "MATCHED",
       })),
     });
@@ -255,6 +366,110 @@ export async function acceptPool(driverId: string, poolId: string) {
                 estimatedFarePoisha: true,
                 status: true,
 
+                passenger: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+}
+
+export async function updateActivePoolStatus(
+  driverId: string,
+  nextStatus: "DRIVER_ARRIVED" | "STARTED" | "COMPLETED",
+) {
+  return prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.findUnique({
+      where: {
+        driverId,
+      },
+    });
+
+    if (!vehicle) {
+      throw new Error("VEHICLE_NOT_FOUND");
+    }
+
+    const pool = await tx.pool.findFirst({
+      where: {
+        vehicleId: vehicle.id,
+
+        status: {
+          in: ["ACCEPTED", "DRIVER_ARRIVED", "STARTED"],
+        },
+      },
+
+      include: {
+        members: true,
+      },
+    });
+
+    if (!pool) {
+      throw new Error("ACTIVE_POOL_NOT_FOUND");
+    }
+
+    const allowedNextStatus = {
+      ACCEPTED: "DRIVER_ARRIVED",
+      DRIVER_ARRIVED: "STARTED",
+      STARTED: "COMPLETED",
+    } as const;
+
+    const expected =
+      allowedNextStatus[pool.status as keyof typeof allowedNextStatus];
+
+    if (expected !== nextStatus) {
+      throw new Error("INVALID_POOL_TRANSITION");
+    }
+
+    const rideIds = pool.members.map((member) => member.rideRequestId);
+
+    await tx.pool.update({
+      where: {
+        id: pool.id,
+      },
+
+      data: {
+        status: nextStatus,
+      },
+    });
+
+    await tx.rideRequest.updateMany({
+      where: {
+        id: {
+          in: rideIds,
+        },
+      },
+
+      data: {
+        status: nextStatus,
+      },
+    });
+
+    await tx.rideStatusHistory.createMany({
+      data: rideIds.map((rideRequestId) => ({
+        rideRequestId,
+        status: nextStatus,
+      })),
+    });
+
+    return tx.pool.findUnique({
+      where: {
+        id: pool.id,
+      },
+
+      include: {
+        vehicle: true,
+
+        members: {
+          include: {
+            rideRequest: {
+              include: {
                 passenger: {
                   select: {
                     id: true,
