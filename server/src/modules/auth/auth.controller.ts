@@ -2,13 +2,24 @@ import type { Request, Response } from "express";
 
 import type { AuthenticatedRequest } from "../../middleware/authenticate.js";
 
-import { loginUser, registerUser } from "./auth.service.js";
+import {
+  loginUser,
+  registerUser,
+} from "./auth.service.js";
 
 // Register
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-    const { name, email, password, role } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+    } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({
@@ -17,7 +28,10 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    if (role !== "PASSENGER" && role !== "DRIVER") {
+    if (
+      role !== "PASSENGER" &&
+      role !== "DRIVER"
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid user role",
@@ -36,7 +50,10 @@ export const register = async (req: Request, res: Response) => {
       data: user,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
 
     if (
       message === "Email already used." ||
@@ -59,9 +76,15 @@ export const register = async (req: Request, res: Response) => {
 
 // Login
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (
+  req: Request,
+  res: Response,
+) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password,
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -77,9 +100,17 @@ export const login = async (req: Request, res: Response) => {
 
     res.cookie("token", result.token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+
+      secure:
+        process.env.NODE_ENV === "production",
+
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? "none"
+          : "lax",
+
+      maxAge:
+        7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -90,7 +121,10 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "UNKNOWN_ERROR";
 
     if (message === "INVALID_CREDENTIALS") {
       return res.status(401).json({
@@ -100,11 +134,14 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (message === "JWT_SECRET_MISSING") {
-      console.error("JWT_SECRET is not configured.");
+      console.error(
+        "JWT_SECRET is not configured.",
+      );
 
       return res.status(500).json({
         success: false,
-        message: "Authentication configuration error",
+        message:
+          "Authentication configuration error",
       });
     }
 
@@ -119,11 +156,20 @@ export const login = async (req: Request, res: Response) => {
 
 // Logout
 
-export const logout = (req: Request, res: Response) => {
+export const logout = (
+  req: Request,
+  res: Response,
+) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+
+    secure:
+      process.env.NODE_ENV === "production",
+
+    sameSite:
+      process.env.NODE_ENV === "production"
+        ? "none"
+        : "lax",
   });
 
   return res.status(200).json({
@@ -134,7 +180,10 @@ export const logout = (req: Request, res: Response) => {
 
 // Current authenticated user
 
-export const getMe = async (req: AuthenticatedRequest, res: Response) => {
+export const getMe = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
