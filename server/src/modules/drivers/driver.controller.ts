@@ -6,6 +6,7 @@ import {
   acceptPool,
   getActivePool,
   getAvailablePools,
+  getDriverHistory,
   updateActivePoolStatus,
 } from "./driver.service.js";
 
@@ -86,6 +87,50 @@ export async function activePoolController(
     return res.status(200).json({
       success: true,
       data: pool,
+    });
+  } catch (error) {
+    const message = (error as Error).message;
+
+    if (message === "VEHICLE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found for this driver",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+}
+
+// Get driver ride history
+
+export async function driverHistoryController(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (req.user.role !== "DRIVER") {
+      return res.status(403).json({
+        success: false,
+        message: "Driver access only",
+      });
+    }
+
+    const history = await getDriverHistory(req.user.userId);
+
+    return res.status(200).json({
+      success: true,
+      data: history,
     });
   } catch (error) {
     const message = (error as Error).message;
@@ -192,6 +237,8 @@ export async function acceptPoolController(
   }
 }
 
+// Update active pool lifecycle
+
 export async function updateActivePoolStatusController(
   req: AuthenticatedRequest,
   res: Response,
@@ -204,18 +251,31 @@ export async function updateActivePoolStatusController(
       });
     }
 
+    if (req.user.role !== "DRIVER") {
+      return res.status(403).json({
+        success: false,
+        message: "Driver access only",
+      });
+    }
+
     const { status } = req.body;
 
-    const allowedStatuses = ["DRIVER_ARRIVED", "STARTED", "COMPLETED"];
+    const allowedStatuses = ["DRIVER_ARRIVED", "STARTED", "COMPLETED"] as const;
 
-    if (!allowedStatuses.includes(status)) {
+    if (
+      typeof status !== "string" ||
+      !allowedStatuses.includes(status as (typeof allowedStatuses)[number])
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid pool status",
       });
     }
 
-    const pool = await updateActivePoolStatus(req.user.userId, status);
+    const pool = await updateActivePoolStatus(
+      req.user.userId,
+      status as (typeof allowedStatuses)[number],
+    );
 
     return res.status(200).json({
       success: true,
@@ -223,6 +283,13 @@ export async function updateActivePoolStatusController(
     });
   } catch (error) {
     const message = (error as Error).message;
+
+    if (message === "VEHICLE_NOT_FOUND") {
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found for this driver",
+      });
+    }
 
     if (message === "ACTIVE_POOL_NOT_FOUND") {
       return res.status(404).json({
@@ -240,7 +307,7 @@ export async function updateActivePoolStatusController(
 
     return res.status(500).json({
       success: false,
-      message,
+      message: "Internal server error",
     });
   }
 }

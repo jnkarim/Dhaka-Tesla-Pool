@@ -3,17 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-
 import { LoaderCircle, LogOut, Menu, X } from "lucide-react";
+import { Montserrat } from "next/font/google";
 
 import { api } from "@/lib/api";
-
-import { Montserrat } from "next/font/google";
 
 const logoFont = Montserrat({
   subsets: ["latin"],
   weight: ["800", "900"],
 });
+
 type Role = "PASSENGER" | "DRIVER";
 
 type MeResponse = {
@@ -29,17 +28,14 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const [role, setRole] = useState<Role | null>(null);
 
   const [authLoading, setAuthLoading] = useState(true);
-
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const hasCheckedAuth = useRef(false);
-
   const previousPathname = useRef(pathname);
 
   useEffect(() => {
@@ -64,11 +60,9 @@ export default function Navbar() {
 
         if (response.success && response.data?.role) {
           setIsLoggedIn(true);
-
           setRole(response.data.role);
         } else {
           setIsLoggedIn(false);
-
           setRole(null);
         }
       } catch {
@@ -77,14 +71,11 @@ export default function Navbar() {
         }
 
         setIsLoggedIn(false);
-
         setRole(null);
       } finally {
         if (!cancelled) {
           hasCheckedAuth.current = true;
-
           setAuthLoading(false);
-
           previousPathname.current = pathname;
         }
       }
@@ -108,7 +99,6 @@ export default function Navbar() {
 
     try {
       setLogoutLoading(true);
-
       setMobileOpen(false);
 
       await api("/auth/logout", {
@@ -118,7 +108,6 @@ export default function Navbar() {
       window.location.replace("/login");
     } catch (error) {
       console.error("Logout failed", error);
-
       setLogoutLoading(false);
     }
   }
@@ -133,7 +122,6 @@ export default function Navbar() {
     <header className="relative z-50 w-full border-b border-black/10 bg-white">
       <nav className="flex h-[100px] w-full items-stretch">
         {/* Logo */}
-
         <div className="flex shrink-0 items-center justify-center bg-black px-8 lg:w-[400px]">
           <Link href="/" onClick={() => setMobileOpen(false)} className="group">
             <span
@@ -147,7 +135,6 @@ export default function Navbar() {
         </div>
 
         {/* Desktop */}
-
         <div className="hidden flex-1 items-stretch justify-end lg:flex">
           {navigationLoading ? (
             <DesktopAuthLoading loggingOut={logoutLoading} />
@@ -161,7 +148,6 @@ export default function Navbar() {
         </div>
 
         {/* Mobile button */}
-
         <div className="ml-auto flex items-center pr-6 lg:hidden">
           {navigationLoading ? (
             <div className="flex items-center gap-2 text-sm font-semibold text-black/45">
@@ -187,7 +173,6 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile navigation */}
-
       {mobileOpen && !navigationLoading && (
         <MobileNavigation
           isLoggedIn={isLoggedIn}
@@ -245,6 +230,8 @@ function DriverDesktopNavigation({ onLogout }: { onLogout: () => void }) {
   return (
     <>
       <NavItem href="/driver">Driver</NavItem>
+
+      <NavItem href="/driver/activity">Activity</NavItem>
 
       <NavItem href="/#how-it-works">How it works</NavItem>
 
@@ -323,6 +310,8 @@ function MobileNavigation({
         ) : (
           <div className="flex flex-col">
             <MobileNavItem href="/driver">Driver</MobileNavItem>
+
+            <MobileNavItem href="/driver/activity">Activity</MobileNavItem>
 
             <MobileNavItem href="/#how-it-works">How it works</MobileNavItem>
 
