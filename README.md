@@ -59,6 +59,19 @@ Passengers
 
 ---
 
+## 🔗 Quick Links
+
+| Resource | Link |
+| --- | --- |
+| 🌐 Frontend | [Live App](https://dhaka-tesla-pool-dun.vercel.app/) |
+| ⚙️ Backend | [API Health](https://dhaka-tesla-pool-2z2h.onrender.com/api/v1/health) |
+| 🎥 Demo Video | [Google Drive](https://drive.google.com/drive/folders/16M0rF7bVbq9LNMXKkXaNjHkVygHcDB7P?usp=sharing) |
+| 💻 Repository | [GitHub](https://github.com/jnkarim/Dhaka-Tesla-Pool) |
+
+> The backend uses Render's free tier, so the first request after inactivity may take a short time while the service wakes up.
+
+---
+
 # ✦ 2. The Product Problem
 
 Passengers know where they want to go, but multiple passengers may be travelling in compatible directions at the same time.
@@ -224,48 +237,56 @@ This keeps the implementation easy to explain while still demonstrating the impo
 
 # ✦ 5. Fare Model
 
-Money is stored as **integer poisha** rather than floating-point Taka values.
+Money is stored as **integer poisha** rather than floating-point Taka values. For example, `৳120.50` is stored as `12,050` poisha. This avoids floating-point rounding issues in fare calculations.
 
-Example:
-
-```text
-৳120.50
-=
-12,050 poisha
-```
-
-This avoids floating-point rounding problems in fare calculations.
-
-The fare model follows the assignment's intentionally simple structure:
+The fare model is:
 
 ```text
-passengerFare
-=
-baseFare
-+
-route / distance charge
--
-pool discount
+passengerFare = baseFare + routeCharge - poolDiscount
 ```
 
-The ride stores:
+Current implementation constants:
+
+| Item | Value |
+| --- | ---: |
+| Base fare | ৳50 (`5,000` poisha) |
+| Default route charge | ৳50 (`5,000` poisha) |
+| Pool discount | ৳20 (`2,000` poisha) |
+| Banani → Mohakhali route charge | ৳70 (`7,000` poisha) |
+| Banani → Gulshan 1 route charge | ৳50 (`5,000` poisha) |
+
+Examples:
+
+```text
+Banani → Mohakhali
+Normal fare = ৳50 + ৳70 = ৳120
+Pooled fare = ৳120 - ৳20 = ৳100
+Banani → Gulshan 1
+Normal fare = ৳50 + ৳50 = ৳100
+Pooled fare = ৳100 - ৳20 = ৳80
+Khilgaon → Bashundhara
+Uses the default route charge
+Normal fare = ৳50 + ৳50 = ৳100
+Pooled fare = ৳100 - ৳20 = ৳80
+```
+
+A passenger initially receives the normal estimated fare. When another compatible passenger joins the same open pool, the pool discount is applied to the new passenger and the existing pool members.
+
+The ride stores the current passenger-visible value in:
 
 ```text
 estimatedFarePoisha
 ```
 
-and a pool membership may store:
+and the pool membership may store the pooled/final value in:
 
 ```text
 finalFarePoisha
 ```
 
-> Before final submission, document the exact fare constants currently used in the implementation so the evaluator can reproduce Nusrat and Rafiq's fare by hand.
-
 ---
 
 ## 💵 Cash Payment Flow
-
 The MVP uses **cash payment**.
 
 Ride completion and payment completion are intentionally separate states.
@@ -278,7 +299,6 @@ Ride COMPLETED
       │
       └──────────────► Driver confirms cash received
                        driverReceived = true
-
 Both confirmations true
       ↓
 paymentStatus = COMPLETED
@@ -773,7 +793,6 @@ http://localhost:5000/api/v1/health
 ---
 
 # ✦ Docker Setup
-
 The project should be reproducible with Docker Compose.
 
 From the repository root:
@@ -798,8 +817,6 @@ migrations
 seed data
 health check
 ```
-
----
 
 # ✦ Environment Variables
 
@@ -1017,42 +1034,135 @@ At larger scale, stronger strategies could include:
 - retry strategies for serialization conflicts
 
 ---
+# ✦ Example Pooling Workflow
+Suppose Nusrat requests:
+
+```text
+Pickup
+→ Banani
+Destination
+→ Mohakhali
+Seats
+→ 1
+```
+
+Then Rafiq requests:
+
+```text
+Pickup
+→ Banani
+Destination
+→ Gulshan 1
+Seats
+→ 1
+```
+
+The system processes the requests like this:
+
+```text
+Nusrat Request
+      │
+      ▼
+Compatible Route?
+      │
+      ▼
+Open Pool Created
+      │
+      ▼
+Rafiq Request
+      │
+      ▼
+Compatible Route?
+      │ YES
+      ▼
+Capacity Available?
+      │ YES
+      ▼
+Join Same Pool
+      │
+      ▼
+Jashim Goes Online
+      │
+      ▼
+Accept Pool
+      │
+      ▼
+MATCHED
+      │
+      ▼
+DRIVER_ARRIVED
+      │
+      ▼
+STARTED
+      │
+      ▼
+COMPLETED
+```
+
+If another request would make occupied seats exceed **3**, the request must not overbook that pool.
+
+---
+
+# ✦ Data Consistency & Concurrency
+A key risk in ride pooling is two requests trying to claim the final available seat at almost the same time.
+
+Example:
+
+```text
+Bullet has 1 seat left
+       │
+       ├──────────────► Nusrat sees 1 seat
+       │
+       └──────────────► Shirin sees 1 seat
+Both request nearly simultaneously
+```
+
+The application uses database transactions around capacity-sensitive operations so the final committed state remains consistent.
+
+Driver pool acceptance also performs a conditional claim so that two drivers cannot successfully claim the same open pool.
+
+At larger scale, stronger strategies could include:
+
+- row-level locking
+- stricter transaction isolation
+- optimistic version checks
+- idempotency keys
+- retry strategies for serialization conflicts
+
+---
 
 # ✦ Testing
 
-Meaningful tests should focus on risky behavior rather than coverage percentage alone.
+The backend includes automated tests for the fare and route-matching behavior used by the MVP.
 
-Core scenarios:
-
-```text
-✓ Bullet's capacity can never be exceeded
-
-✓ invalid lifecycle transitions are rejected
-
-✓ Nusrat and Rafiq receive the expected individual fares
-
-✓ one user cannot modify another user's ride
-
-✓ cancellation rules are enforced
-
-✓ concurrent requests cannot corrupt pool capacity
-
-✓ two drivers cannot claim the same pool
-
-✓ passenger payment confirmation checks ownership
-
-✓ driver cash confirmation checks assigned driver
-
-✓ payment becomes complete only after both confirmations
-```
-
-Run the repository's configured test command from the relevant package, for example:
+Run the tests from the server package:
 
 ```bash
+cd server
 npm test
 ```
 
-Before submission, make sure the actual command in `package.json` matches the README.
+Current automated coverage includes:
+
+```text
+✓ normal Banani → Mohakhali fare calculation
+✓ pooled Banani → Mohakhali discount
+✓ default fare for an unmapped valid route
+✓ valid Dhaka route acceptance
+✓ Khilgaon → Bashundhara route acceptance
+✓ same pickup and destination rejection
+✓ unknown zone rejection
+```
+
+Current test result:
+
+```text
+tests 7
+pass  7
+fail  0
+```
+
+The test command is configured in `server/package.json` and runs the TypeScript test files through `tsx --test`.
 
 ---
 
@@ -1072,7 +1182,7 @@ The MVP includes the following security decisions:
 
 ---
 
-# ✦ 10. Git Workflow - Part of the Assessment
+# ✦ 10. Git Workflow
 
 The submission workflow uses the branches required by the assignment:
 
@@ -1097,6 +1207,8 @@ pre-release
 integration fixes + docs + deployment checks
       ↓
 release/v1.0.0
+      ↓
+     main
       ↓
 video / deployment version
 ```
@@ -1123,17 +1235,6 @@ https://dhaka-tesla-pool-2z2h.onrender.com/api/v1/health
 The backend is deployed using Render's free tier.
 Since the backend uses Render's free instance, the service may enter an idle state after a period of inactivity. The first request after inactivity may experience a cold start delay while the server instance becomes active again.
 
----
-
-
-
-# ✦ 13. Six-Minute Final Video
-
-Final video link:
-
-```text
-TODO: Add Loom / video URL
-```
 
 
 
