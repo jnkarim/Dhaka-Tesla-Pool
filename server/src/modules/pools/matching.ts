@@ -27,13 +27,9 @@ export function isCompatibleRoute(
   pickup: string,
   destination: string,
 ): boolean {
-  const validPickup = DHAKA_ZONES.includes(
-    pickup as DhakaZone,
-  );
+  const validPickup = DHAKA_ZONES.includes(pickup as DhakaZone);
 
-  const validDestination = DHAKA_ZONES.includes(
-    destination as DhakaZone,
-  );
+  const validDestination = DHAKA_ZONES.includes(destination as DhakaZone);
 
   if (!validPickup || !validDestination) {
     return false;
