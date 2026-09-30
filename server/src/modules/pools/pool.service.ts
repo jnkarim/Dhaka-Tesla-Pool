@@ -7,6 +7,7 @@ const TESLA_CAPACITY = 3;
 
 // Find an existing compatible open pool
 export async function findCompatiblePool(pickup: string, destination: string) {
+  // New request itself must be a valid route
   if (!isCompatibleRoute(pickup, destination)) {
     return null;
   }
@@ -37,12 +38,20 @@ export async function findCompatiblePool(pickup: string, destination: string) {
       continue;
     }
 
+    // MVP matching rule:
+    // passengers must start from the same pickup zone
+    if (existingRide.pickup !== pickup) {
+      continue;
+    }
+
     const existingRouteCompatible = isCompatibleRoute(
       existingRide.pickup,
       existingRide.destination,
     );
 
-    if (existingRouteCompatible) {
+    const newRouteCompatible = isCompatibleRoute(pickup, destination);
+
+    if (existingRouteCompatible && newRouteCompatible) {
       return pool;
     }
   }
@@ -94,7 +103,7 @@ export async function hasAvailableSeats(
   return occupiedSeats + requestedSeats <= capacity;
 }
 
-// Add ride request to pool
+// Add first ride request to a newly created pool
 export async function addPoolMember(
   poolId: string,
   rideRequestId: string,
@@ -105,10 +114,15 @@ export async function addPoolMember(
       poolId,
       rideRequestId,
       seatsReserved: seats,
+
+      // No final pooled fare yet.
+      // Passenger is currently alone.
+      finalFarePoisha: null,
     },
   });
 }
 
+// Join an existing open pool safely
 export async function joinPoolSafely(
   poolId: string,
   rideRequestId: string,
@@ -119,12 +133,14 @@ export async function joinPoolSafely(
       where: {
         id: poolId,
       },
+
       include: {
         members: {
           include: {
             rideRequest: true,
           },
         },
+
         vehicle: true,
       },
     });
@@ -158,10 +174,14 @@ export async function joinPoolSafely(
       throw new Error("RIDE_REQUEST_NOT_FOUND");
     }
 
-    const newPooledFare = calculateFare(
+    // If somebody is already in the pool,
+    // adding this passenger makes it a real shared pool.
+    const willBePooled = pool.members.length > 0;
+
+    const newFare = calculateFare(
       rideRequest.pickup as DhakaZone,
       rideRequest.destination as DhakaZone,
-      true,
+      willBePooled,
     );
 
     const member = await tx.poolMember.create({
@@ -169,44 +189,51 @@ export async function joinPoolSafely(
         poolId,
         rideRequestId,
         seatsReserved: seats,
-        finalFarePoisha: newPooledFare,
+        finalFarePoisha: willBePooled ? newFare : null,
       },
     });
 
-    for (const existingMember of pool.members) {
-      const ride = existingMember.rideRequest;
+    // Once a second passenger joins,
+    // apply pool discount to everyone already inside.
+    if (willBePooled) {
+      for (const existingMember of pool.members) {
+        const ride = existingMember.rideRequest;
 
-      const pooledFare = calculateFare(
-        ride.pickup as DhakaZone,
-        ride.destination as DhakaZone,
-        true,
-      );
+        const pooledFare = calculateFare(
+          ride.pickup as DhakaZone,
+          ride.destination as DhakaZone,
+          true,
+        );
 
-      await tx.rideRequest.update({
-        where: {
-          id: ride.id,
-        },
-        data: {
-          estimatedFarePoisha: pooledFare,
-        },
-      });
+        await tx.rideRequest.update({
+          where: {
+            id: ride.id,
+          },
 
-      await tx.poolMember.update({
-        where: {
-          id: existingMember.id,
-        },
-        data: {
-          finalFarePoisha: pooledFare,
-        },
-      });
+          data: {
+            estimatedFarePoisha: pooledFare,
+          },
+        });
+
+        await tx.poolMember.update({
+          where: {
+            id: existingMember.id,
+          },
+
+          data: {
+            finalFarePoisha: pooledFare,
+          },
+        });
+      }
     }
 
     const updatedRideRequest = await tx.rideRequest.update({
       where: {
         id: rideRequestId,
       },
+
       data: {
-        estimatedFarePoisha: newPooledFare,
+        estimatedFarePoisha: newFare,
       },
     });
 
