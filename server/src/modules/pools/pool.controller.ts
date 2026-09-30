@@ -12,18 +12,11 @@ export async function joinPoolController(
   try {
     const { poolId, rideRequestId, seats } = req.body;
 
-    const member = await joinPoolSafely(
-      poolId,
-
-      rideRequestId,
-
-      seats,
-    );
+    const result = await joinPoolSafely(poolId, rideRequestId, seats);
 
     return res.status(201).json({
       success: true,
-
-      data: member,
+      data: result,
     });
   } catch (error) {
     return res.status(400).json({

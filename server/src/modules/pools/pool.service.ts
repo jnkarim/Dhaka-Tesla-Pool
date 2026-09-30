@@ -1,11 +1,11 @@
 import prisma from "../../lib/prisma.js";
 
 import { isCompatibleRoute } from "./matching.js";
+import { calculateFare, type DhakaZone } from "../fares/fare.service.js";
 
 const TESLA_CAPACITY = 3;
 
 // Find an existing compatible open pool
-
 export async function findCompatiblePool(pickup: string, destination: string) {
   if (!isCompatibleRoute(pickup, destination)) {
     return null;
@@ -51,7 +51,6 @@ export async function findCompatiblePool(pickup: string, destination: string) {
 }
 
 // Create an unassigned open pool
-
 export async function createPool() {
   return prisma.pool.create({
     data: {
@@ -62,7 +61,6 @@ export async function createPool() {
 }
 
 // Check pool capacity
-
 export async function hasAvailableSeats(
   poolId: string,
   requestedSeats: number,
@@ -97,7 +95,6 @@ export async function hasAvailableSeats(
 }
 
 // Add ride request to pool
-
 export async function addPoolMember(
   poolId: string,
   rideRequestId: string,
@@ -112,8 +109,6 @@ export async function addPoolMember(
   });
 }
 
-// Join an open pool with capacity validation
-
 export async function joinPoolSafely(
   poolId: string,
   rideRequestId: string,
@@ -124,9 +119,12 @@ export async function joinPoolSafely(
       where: {
         id: poolId,
       },
-
       include: {
-        members: true,
+        members: {
+          include: {
+            rideRequest: true,
+          },
+        },
         vehicle: true,
       },
     });
@@ -150,12 +148,71 @@ export async function joinPoolSafely(
       throw new Error("NO_AVAILABLE_SEATS");
     }
 
-    return tx.poolMember.create({
+    const rideRequest = await tx.rideRequest.findUnique({
+      where: {
+        id: rideRequestId,
+      },
+    });
+
+    if (!rideRequest) {
+      throw new Error("RIDE_REQUEST_NOT_FOUND");
+    }
+
+    const newPooledFare = calculateFare(
+      rideRequest.pickup as DhakaZone,
+      rideRequest.destination as DhakaZone,
+      true,
+    );
+
+    const member = await tx.poolMember.create({
       data: {
         poolId,
         rideRequestId,
         seatsReserved: seats,
+        finalFarePoisha: newPooledFare,
       },
     });
+
+    for (const existingMember of pool.members) {
+      const ride = existingMember.rideRequest;
+
+      const pooledFare = calculateFare(
+        ride.pickup as DhakaZone,
+        ride.destination as DhakaZone,
+        true,
+      );
+
+      await tx.rideRequest.update({
+        where: {
+          id: ride.id,
+        },
+        data: {
+          estimatedFarePoisha: pooledFare,
+        },
+      });
+
+      await tx.poolMember.update({
+        where: {
+          id: existingMember.id,
+        },
+        data: {
+          finalFarePoisha: pooledFare,
+        },
+      });
+    }
+
+    const updatedRideRequest = await tx.rideRequest.update({
+      where: {
+        id: rideRequestId,
+      },
+      data: {
+        estimatedFarePoisha: newPooledFare,
+      },
+    });
+
+    return {
+      member,
+      rideRequest: updatedRideRequest,
+    };
   });
 }
