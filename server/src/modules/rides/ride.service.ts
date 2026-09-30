@@ -33,7 +33,10 @@ export async function createRide(
     throw new Error("INVALID_SEAT_COUNT");
   }
 
-  const fare = calculateFare(pickup, destination);
+  // Passenger starts with normal fare.
+  // Pool discount is applied only when another passenger
+  // already exists in the same pool.
+  const normalFare = calculateFare(pickup, destination, false);
 
   for (let attempt = 1; attempt <= MAX_TRANSACTION_RETRIES; attempt++) {
     try {
@@ -60,7 +63,7 @@ export async function createRide(
               destination,
               seats,
 
-              estimatedFarePoisha: fare,
+              estimatedFarePoisha: normalFare,
 
               status: "REQUESTED",
 
@@ -79,8 +82,6 @@ export async function createRide(
               status: "REQUESTED",
             },
           });
-
-          let selectedPoolId: string | null = null;
 
           const canShare = isCompatibleRoute(pickup, destination);
 
@@ -104,6 +105,8 @@ export async function createRide(
               },
             });
 
+            let selectedPool: (typeof openPools)[number] | null = null;
+
             for (const pool of openPools) {
               const occupiedSeats = pool.members.reduce(
                 (total, member) => total + member.seatsReserved,
@@ -116,39 +119,118 @@ export async function createRide(
                 continue;
               }
 
-              const routesCompatible = pool.members.every((member) =>
+              const firstExistingRide = pool.members[0]?.rideRequest;
+
+              if (!firstExistingRide) {
+                continue;
+              }
+
+              // MVP matching rule:
+              // passengers can share when
+              // they start from the same pickup zone.
+              if (firstExistingRide.pickup !== pickup) {
+                continue;
+              }
+
+              const existingRoutesValid = pool.members.every((member) =>
                 isCompatibleRoute(
                   member.rideRequest.pickup,
                   member.rideRequest.destination,
                 ),
               );
 
-              if (routesCompatible) {
-                selectedPoolId = pool.id;
-
-                break;
+              if (!existingRoutesValid) {
+                continue;
               }
+
+              selectedPool = pool;
+
+              break;
+            }
+
+            if (selectedPool) {
+              // This passenger is joining
+              // an already occupied pool,
+              // therefore the ride is pooled.
+              const pooledFare = calculateFare(pickup, destination, true);
+
+              await tx.poolMember.create({
+                data: {
+                  poolId: selectedPool.id,
+
+                  rideRequestId: ride.id,
+
+                  seatsReserved: seats,
+
+                  finalFarePoisha: pooledFare,
+                },
+              });
+
+              // Existing passengers also receive
+              // the pool discount.
+              for (const existingMember of selectedPool.members) {
+                const existingPassengerRide = existingMember.rideRequest;
+
+                const existingPooledFare = calculateFare(
+                  existingPassengerRide.pickup as DhakaZone,
+                  existingPassengerRide.destination as DhakaZone,
+                  true,
+                );
+
+                await tx.rideRequest.update({
+                  where: {
+                    id: existingPassengerRide.id,
+                  },
+
+                  data: {
+                    estimatedFarePoisha: existingPooledFare,
+                  },
+                });
+
+                await tx.poolMember.update({
+                  where: {
+                    id: existingMember.id,
+                  },
+
+                  data: {
+                    finalFarePoisha: existingPooledFare,
+                  },
+                });
+              }
+
+              const updatedRide = await tx.rideRequest.update({
+                where: {
+                  id: ride.id,
+                },
+
+                data: {
+                  estimatedFarePoisha: pooledFare,
+                },
+              });
+
+              return updatedRide;
             }
           }
 
-          if (!selectedPoolId) {
-            const pool = await tx.pool.create({
-              data: {
-                status: "OPEN",
-                vehicleId: null,
-              },
-            });
-
-            selectedPoolId = pool.id;
-          }
+          // No compatible pool found.
+          // Create a new OPEN pool.
+          // First passenger gets no pool discount yet.
+          const newPool = await tx.pool.create({
+            data: {
+              status: "OPEN",
+              vehicleId: null,
+            },
+          });
 
           await tx.poolMember.create({
             data: {
-              poolId: selectedPoolId,
+              poolId: newPool.id,
 
               rideRequestId: ride.id,
 
               seatsReserved: seats,
+
+              finalFarePoisha: null,
             },
           });
 
@@ -190,6 +272,7 @@ export async function getCurrentRide(passengerId: string) {
 
         {
           status: "COMPLETED",
+
           paymentStatus: "PENDING",
         },
       ],
