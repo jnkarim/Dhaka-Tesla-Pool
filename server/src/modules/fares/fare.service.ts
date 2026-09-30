@@ -1,11 +1,21 @@
-export type DhakaZone = "BANANI" | "MOHAKHALI" | "GULSHAN_1";
+export type DhakaZone =
+  | "KHILGAON"
+  | "BANANI"
+  | "GULSHAN_1"
+  | "GULSHAN_2"
+  | "MOHAKHALI"
+  | "FARMGATE"
+  | "DHANMONDI"
+  | "MIRPUR"
+  | "UTTARA"
+  | "BASHUNDHARA";
 
 const BASE_FARE = 5000; // 50 BDT
 const POOL_DISCOUNT = 2000; // 20 BDT
+const DEFAULT_DISTANCE_CHARGE = 5000; // 50 BDT
 
-const distanceChargeMap: Record<
-  DhakaZone,
-  Partial<Record<DhakaZone, number>>
+const distanceChargeMap: Partial<
+  Record<DhakaZone, Partial<Record<DhakaZone, number>>>
 > = {
   BANANI: {
     MOHAKHALI: 7000, // 70 BDT
@@ -26,7 +36,8 @@ export function calculateFare(
   destination: DhakaZone,
   isPooled = false,
 ) {
-  const distanceCharge = distanceChargeMap[pickup]?.[destination] ?? 5000;
+  const distanceCharge =
+    distanceChargeMap[pickup]?.[destination] ?? DEFAULT_DISTANCE_CHARGE;
 
   const poolDiscount = isPooled ? POOL_DISCOUNT : 0;
 
