@@ -71,10 +71,6 @@ export default function Footer() {
               <FooterExternal href="https://github.com/jnkarim/Dhaka-Tesla-Pool">
                 GitHub
               </FooterExternal>
-
-              <FooterExternal href="#">API docs</FooterExternal>
-
-              <FooterExternal href="#">Architecture</FooterExternal>
             </FooterColumn>
           </div>
         </div>
