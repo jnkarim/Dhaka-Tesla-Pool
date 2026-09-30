@@ -200,31 +200,54 @@ export default function DriverPage() {
   useEffect(() => {
     if (!vehicle?.isOnline || activePool) {
       setPools([]);
-
       return;
     }
 
-    async function loadPools() {
-      try {
-        setPoolsLoading(true);
+    let cancelled = false;
 
-        setPoolError("");
+    async function loadPools(showLoading = false) {
+      try {
+        if (showLoading) {
+          setPoolsLoading(true);
+        }
 
         const response = await api<AvailablePoolsResponse>("/drivers/pools");
 
+        if (cancelled) {
+          return;
+        }
+
         setPools(response.data);
+
+        setPoolError("");
       } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
         setPoolError(
           error instanceof Error
             ? error.message
             : "Could not load available pools.",
         );
       } finally {
-        setPoolsLoading(false);
+        if (showLoading && !cancelled) {
+          setPoolsLoading(false);
+        }
       }
     }
 
-    loadPools();
+    void loadPools(true);
+
+    const interval = window.setInterval(() => {
+      void loadPools(false);
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+
+      window.clearInterval(interval);
+    };
   }, [vehicle?.isOnline, activePool]);
 
   async function refreshActivePool() {
@@ -690,7 +713,9 @@ function ActivePoolCard({
 
                 <p className="mt-1 font-semibold">
                   {zoneLabels[member.ride.pickup]}
+
                   {" → "}
+
                   {zoneLabels[member.ride.destination]}
                 </p>
               </div>
@@ -839,14 +864,21 @@ function PoolCard({
 
             <p>
               {zoneLabels[member.ride.pickup]}
+
               {" → "}
+
               {zoneLabels[member.ride.destination]}
             </p>
 
-            <p>{member.seatsReserved} seat</p>
+            <p>
+              {member.seatsReserved}{" "}
+              {member.seatsReserved === 1 ? "seat" : "seats"}
+            </p>
 
             <p className="font-semibold">
-              {formatFare(member.ride.estimatedFarePoisha)}
+              {formatFare(
+                member.finalFarePoisha ?? member.ride.estimatedFarePoisha,
+              )}
             </p>
           </div>
         ))}
